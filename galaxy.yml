@@ -1,21 +1,23 @@
 # SPDX-License-Identifier: MIT
 namespace: danmwallace
 name: hermes
-version: 1.0.0
+version: 1.0.1
 readme: README.md
 authors:
   - Dan Wallace <dan.m.wallace@gmail.com>
-description: Deploy and configure Hermes Agent via Docker Compose with Traefik routing.
+description: Deploy Hermes AI agent and Gateway as Podman Quadlets on Fedora Server.
 license:
   - MIT
 tags:
-  - docker
+  - podman
+  - quadlet
   - hermes
   - ai
-  - agent
-  - discord
+  - fedora
 dependencies:
-  community.docker: ">=3.0.0"
+  containers.podman: ">=1.11.0"
+  ansible.posix: ">=1.5.0"
+  community.general: ">=8.0.0"
 repository: https://github.com/danmwallace/ansible-collection-hermes
 documentation: https://github.com/danmwallace/ansible-collection-hermes
 homepage: https://github.com/danmwallace/ansible-collection-hermes

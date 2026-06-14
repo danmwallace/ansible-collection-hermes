@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 namespace: danmwallace
 name: hermes
-version: 1.0.1
+version: 1.0.2
 readme: README.md
 authors:
   - Dan Wallace <dan.m.wallace@gmail.com>
@@ -9,11 +9,11 @@ description: Deploy Hermes AI agent and Gateway as Podman Quadlets on Fedora Ser
 license:
   - MIT
 tags:
+  - linux
+  - infrastructure
   - podman
-  - quadlet
   - hermes
   - ai
-  - fedora
 dependencies:
   containers.podman: ">=1.11.0"
   ansible.posix: ">=1.5.0"

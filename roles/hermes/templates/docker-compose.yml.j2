@@ -1,0 +1,66 @@
+services:
+  hermes:
+    image: {{ hermes_image }}:{{ hermes_image_tag }}
+    container_name: {{ hermes_container_name }}
+    restart: unless-stopped
+    command: gateway run
+    volumes:
+      - {{ hermes_data_dir }}:/opt/data:z
+{% if hermes_browser_tools_enabled %}
+    shm_size: "{{ hermes_shm_size }}"
+{% endif %}
+    environment:
+      - PUID={{ hermes_uid }}
+      - PGID={{ hermes_gid }}
+{% if hermes_dashboard_enabled %}
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+      - HERMES_DASHBOARD_PORT={{ hermes_dashboard_port }}
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME={{ hermes_dashboard_basic_auth_username }}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD={{ hermes_dashboard_basic_auth_password }}
+{% endif %}
+{% if hermes_api_server_enabled %}
+      - API_SERVER_ENABLED=true
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_KEY={{ hermes_api_server_key }}
+{% if hermes_api_server_cors_origins %}
+      - API_SERVER_CORS_ORIGINS={{ hermes_api_server_cors_origins }}
+{% endif %}
+{% endif %}
+{% if hermes_anthropic_api_key %}
+      - ANTHROPIC_API_KEY={{ hermes_anthropic_api_key }}
+{% endif %}
+{% if hermes_openai_api_key %}
+      - OPENAI_API_KEY={{ hermes_openai_api_key }}
+{% endif %}
+    deploy:
+      resources:
+        limits:
+          memory: {{ hermes_memory_limit }}
+          cpus: "{{ hermes_cpu_limit }}"
+{% if hermes_traefik_enabled %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ hermes_traefik_network }}"
+      - "traefik.http.routers.hermes-dash-{{ inventory_hostname }}.rule=Host(`hermes-{{ inventory_hostname }}.{{ hermes_domain }}`)"
+      - "traefik.http.routers.hermes-dash-{{ inventory_hostname }}.entrypoints=websecure"
+      - "traefik.http.routers.hermes-dash-{{ inventory_hostname }}.tls.certresolver=cloudflare"
+      - "traefik.http.services.hermes-dash-{{ inventory_hostname }}.loadbalancer.server.port={{ hermes_dashboard_port }}"
+      - "traefik.http.routers.hermes-api-{{ inventory_hostname }}.rule=Host(`hermes-api-{{ inventory_hostname }}.{{ hermes_domain }}`)"
+      - "traefik.http.routers.hermes-api-{{ inventory_hostname }}.entrypoints=websecure"
+      - "traefik.http.routers.hermes-api-{{ inventory_hostname }}.tls.certresolver=cloudflare"
+      - "traefik.http.services.hermes-api-{{ inventory_hostname }}.loadbalancer.server.port={{ hermes_api_server_port }}"
+{% endif %}
+    networks:
+{% if hermes_traefik_enabled %}
+      - {{ hermes_traefik_network }}
+{% endif %}
+      - hermes_internal
+
+networks:
+{% if hermes_traefik_enabled %}
+  {{ hermes_traefik_network }}:
+    external: true
+{% endif %}
+  hermes_internal:
+    driver: bridge

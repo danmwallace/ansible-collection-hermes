@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MIT
+namespace: danmwallace
+name: hermes
+version: 1.0.0
+readme: README.md
+authors:
+  - Dan Wallace <dan.m.wallace@gmail.com>
+description: Deploy and configure Hermes Agent via Docker Compose with Traefik routing.
+license:
+  - MIT
+tags:
+  - docker
+  - hermes
+  - ai
+  - agent
+  - discord
+dependencies:
+  community.docker: ">=3.0.0"
+repository: https://github.com/danmwallace/ansible-collection-hermes
+documentation: https://github.com/danmwallace/ansible-collection-hermes
+homepage: https://github.com/danmwallace/ansible-collection-hermes
+issues: https://github.com/danmwallace/ansible-collection-hermes/issues
+build_ignore: []

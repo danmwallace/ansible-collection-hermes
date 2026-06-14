@@ -1,0 +1,137 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy Hermes Agent Docker Compose stack behind Traefik.
+    description:
+      - Creates /opt/hermes and /opt/hermes/data, renders docker-compose.yml and
+        data/.env, and brings the stack up via community.docker.docker_compose_v2.
+      - Joins the external proxy_network Docker network and emits Traefik labels
+        so the dashboard and API server are routed by hostname.
+    author:
+      - Dan Wallace
+    options:
+      hermes_image:
+        description: Hermes Agent Docker image name.
+        type: str
+        default: nousresearch/hermes-agent
+      hermes_image_tag:
+        description: Hermes Agent image tag.
+        type: str
+        default: latest
+      hermes_container_name:
+        description: Name of the running Hermes container. Must match hermes_gateway role if both are applied.
+        type: str
+        default: hermes
+      hermes_deploy_dir:
+        description: Host directory for the docker-compose.yml file.
+        type: str
+        default: /opt/hermes
+      hermes_data_dir:
+        description: Host path mounted as /opt/data inside the container (persistent agent storage).
+        type: str
+        default: /opt/hermes/data
+      hermes_deploy_group:
+        description: Unix group for deploy directory and file ownership.
+        type: str
+        default: docker
+      hermes_uid:
+        description: UID the Hermes container process runs as (PUID).
+        type: int
+        default: 10000
+      hermes_gid:
+        description: GID the Hermes container process runs as (PGID).
+        type: int
+        default: 10000
+      hermes_memory_limit:
+        description: Docker memory limit for the Hermes container (e.g. "4G").
+        type: str
+        default: "4G"
+      hermes_cpu_limit:
+        description: Docker CPU limit for the Hermes container (e.g. "2.0").
+        type: str
+        default: "2.0"
+      hermes_browser_tools_enabled:
+        description: When true, sets shm_size on the container for Playwright/Chromium support.
+        type: bool
+        default: false
+      hermes_shm_size:
+        description: Shared memory size when hermes_browser_tools_enabled is true.
+        type: str
+        default: "1g"
+      hermes_dashboard_enabled:
+        description: Enable the Hermes web dashboard (HERMES_DASHBOARD=1).
+        type: bool
+        default: true
+      hermes_dashboard_port:
+        description: Host port the dashboard binds to inside the container.
+        type: int
+        default: 9119
+      hermes_dashboard_basic_auth_username:
+        description: Username for dashboard basic auth.
+        type: str
+        default: hermes
+      hermes_dashboard_basic_auth_password:
+        description: Password for dashboard basic auth. Supply from vault.
+        type: str
+        no_log: true
+        default: ""
+      hermes_api_server_enabled:
+        description: Enable the OpenAI-compatible API server.
+        type: bool
+        default: true
+      hermes_api_server_port:
+        description: Host port the API server binds to inside the container.
+        type: int
+        default: 8642
+      hermes_api_server_key:
+        description: API authentication key (minimum 8 characters). Supply from vault.
+        type: str
+        no_log: true
+        default: ""
+      hermes_api_server_cors_origins:
+        description: Comma-separated CORS allowed origins for the API server. Empty disables CORS.
+        type: str
+        default: ""
+      hermes_traefik_enabled:
+        description: When true, emits Traefik labels and joins the Traefik network.
+        type: bool
+        default: true
+      hermes_traefik_network:
+        description: Name of the external Docker network Traefik listens on.
+        type: str
+        default: proxy_network
+      hermes_domain:
+        description: Base domain for Traefik host rules (e.g. "lab.example.com"). Required when hermes_traefik_enabled is true.
+        type: str
+        default: ""
+      hermes_anthropic_api_key:
+        description: Anthropic API key passed as ANTHROPIC_API_KEY env var to the container. Supply from vault.
+        type: str
+        no_log: true
+        default: ""
+      hermes_openai_api_key:
+        description: OpenAI API key passed as OPENAI_API_KEY env var to the container. Supply from vault.
+        type: str
+        no_log: true
+        default: ""
+      hermes_pull_policy:
+        description: >-
+          Image pull policy passed to docker_compose_v2.
+          Options: always, missing, never, build.
+          Defaults to missing (only pull if not present locally).
+        type: str
+        default: missing
+      hermes_deploy_mode:
+        type: str
+        default: docker
+        description: "Deployment mode: 'docker' (Docker Compose) or 'quadlet' (Podman systemd Quadlet)."
+      hermes_quadlet_dir:
+        type: str
+        default: /etc/containers/systemd
+        description: Directory where Quadlet container unit files are written (quadlet mode only).
+      hermes_skip_compose:
+        type: bool
+        default: false
+        description: >-
+          Skip the docker_compose_v2 restart handler.
+          Set true in Molecule or CI environments that cannot access Docker.

@@ -1,0 +1,28 @@
+---
+# SPDX-License-Identifier: MIT
+galaxy_info:
+  role_name: hermes_gateway
+  namespace: danmwallace
+  author: Dan Wallace
+  description: Configure Hermes Agent profiles, gateways, and identity files.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Fedora
+      versions:
+        - all
+  galaxy_tags:
+    - docker
+    - hermes
+    - ai
+    - agent
+    - discord
+
+dependencies: []

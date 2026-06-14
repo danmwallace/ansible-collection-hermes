@@ -1,0 +1,25 @@
+---
+- name: Restart hermes container
+  community.docker.docker_compose_v2:
+    project_src: "{{ hermes_deploy_dir }}"
+    files:
+      - docker-compose.yml
+    state: restarted
+  become: true
+  when: not (hermes_gateway_skip_docker | default(false) | bool)
+  tags:
+    - molecule-notest
+
+- name: Restart hermes-gateway service
+  ansible.builtin.systemd:
+    name: hermes-gateway.service
+    state: restarted
+    daemon_reload: true
+  become: true
+  when: hermes_gateway_deploy_mode == 'quadlet'
+  tags:
+    - molecule-notest
+  register: _hermes_gateway_quadlet_restart
+  failed_when:
+    - _hermes_gateway_quadlet_restart is failed
+    - "'Could not find the requested service' not in (_hermes_gateway_quadlet_restart.msg | default(''))"

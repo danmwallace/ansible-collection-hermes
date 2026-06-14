@@ -1,0 +1,32 @@
+# Managed by Ansible - danmwallace.hermes hermes_gateway
+[Unit]
+Description=Hermes gateway
+After=network-online.target
+
+[Container]
+Image={{ hermes_gateway_image }}:{{ hermes_gateway_image_tag }}
+ContainerName=hermes-gateway
+Exec=gateway run --no-supervise
+Volume={{ hermes_data_dir }}/config.yaml:/opt/data/config.yaml:ro,z
+Volume={{ hermes_data_dir }}/profiles:/opt/data/profiles:ro,z
+Environment=GATEWAY_ALLOW_ALL_USERS=true
+Environment=ANTHROPIC_API_KEY={{ hermes_anthropic_api_key }}
+{% if hermes_gateway_api_server_enabled and hermes_api_server_key %}
+Environment=API_SERVER_KEY={{ hermes_api_server_key }}
+Environment=API_SERVER_HOST=0.0.0.0
+{% endif %}
+{% if hermes_gateway_traefik_enabled %}
+Network=proxy_network.network
+Label=traefik.enable=true
+Label=traefik.docker.network=systemd-proxy_network
+Label=traefik.http.routers.hermes-gateway.rule=Host(`{{ hermes_gateway_hostname }}`)
+Label=traefik.http.routers.hermes-gateway.entrypoints=websecure
+Label=traefik.http.routers.hermes-gateway.tls.certresolver=cloudflare
+Label=traefik.http.services.hermes-gateway.loadbalancer.server.port={{ hermes_gateway_port }}
+{% endif %}
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target

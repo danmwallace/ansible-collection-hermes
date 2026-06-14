@@ -1,0 +1,56 @@
+---
+# defaults file for hermes
+
+# Container image — pin hermes_image_tag to a specific release tag in production
+hermes_image: docker.io/nousresearch/hermes-agent
+hermes_image_tag: latest
+hermes_container_name: hermes
+
+# Filesystem layout
+hermes_deploy_dir: /opt/hermes
+hermes_data_dir: /opt/hermes/data
+hermes_deploy_group: docker
+
+# Process ownership inside container
+hermes_uid: 10000
+hermes_gid: 10000
+
+# Resource limits
+hermes_memory_limit: "4G"
+hermes_cpu_limit: "2.0"
+
+# Playwright/Chromium browser tools (adds shm_size when enabled)
+hermes_browser_tools_enabled: false
+hermes_shm_size: "1g"
+
+# Web dashboard
+hermes_dashboard_enabled: true
+hermes_dashboard_port: 9119
+hermes_dashboard_basic_auth_username: hermes
+hermes_dashboard_basic_auth_password: ""
+
+# OpenAI-compatible API server
+hermes_api_server_enabled: true
+hermes_api_server_port: 8642
+hermes_api_server_key: ""
+hermes_api_server_cors_origins: ""
+
+# Traefik integration
+hermes_traefik_enabled: true
+hermes_traefik_network: systemd-proxy_network
+hermes_domain: ""
+
+# LLM API keys — passed as env vars to override the in-container .env
+hermes_anthropic_api_key: ""
+hermes_openai_api_key: ""
+
+# Docker image pull policy (always, missing, never, build)
+hermes_pull_policy: missing
+
+# Deployment mode: 'docker' (compose) or 'quadlet' (Podman systemd unit)
+hermes_deploy_mode: docker
+hermes_quadlet_dir: /etc/containers/systemd
+
+# When true, skip the docker_compose_v2 restart handler.
+# Set true in Molecule or CI environments that cannot access Docker.
+hermes_skip_compose: false

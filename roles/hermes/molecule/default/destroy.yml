@@ -1,0 +1,9 @@
+---
+- name: Destroy molecule instance
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Stop and remove hermes-instance container
+      containers.podman.podman_container:
+        name: hermes-instance
+        state: absent

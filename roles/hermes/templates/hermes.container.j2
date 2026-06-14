@@ -1,0 +1,58 @@
+# Managed by Ansible - danmwallace.hermes
+[Unit]
+Description=Hermes AI agent
+After=network-online.target
+
+[Container]
+Image={{ hermes_image }}:{{ hermes_image_tag }}
+ContainerName={{ hermes_container_name }}
+# Prevent the CLI process from exiting immediately on no-TTY stdin
+PodmanArgs=--tty
+Volume={{ hermes_data_dir }}:/opt/data:z
+{% if hermes_browser_tools_enabled %}
+ShmSize={{ hermes_shm_size }}
+{% endif %}
+Environment=PUID={{ hermes_uid }}
+Environment=PGID={{ hermes_gid }}
+{% if hermes_dashboard_enabled %}
+Environment=HERMES_DASHBOARD=1
+Environment=HERMES_DASHBOARD_HOST=0.0.0.0
+Environment=HERMES_DASHBOARD_PORT={{ hermes_dashboard_port }}
+Environment=HERMES_DASHBOARD_BASIC_AUTH_USERNAME={{ hermes_dashboard_basic_auth_username }}
+Environment=HERMES_DASHBOARD_BASIC_AUTH_PASSWORD={{ hermes_dashboard_basic_auth_password }}
+{% endif %}
+{% if hermes_api_server_enabled %}
+Environment=API_SERVER_ENABLED=true
+Environment=API_SERVER_HOST=0.0.0.0
+Environment=API_SERVER_KEY={{ hermes_api_server_key }}
+{% if hermes_api_server_cors_origins %}
+Environment=API_SERVER_CORS_ORIGINS={{ hermes_api_server_cors_origins }}
+{% endif %}
+{% endif %}
+{% if hermes_anthropic_api_key %}
+Environment=ANTHROPIC_API_KEY={{ hermes_anthropic_api_key }}
+{% endif %}
+{% if hermes_openai_api_key %}
+Environment=OPENAI_API_KEY={{ hermes_openai_api_key }}
+{% endif %}
+{% if hermes_traefik_enabled %}
+Network=proxy_network.network
+Label=traefik.enable=true
+Label=traefik.docker.network={{ hermes_traefik_network }}
+Label=traefik.http.routers.hermes-dash-{{ inventory_hostname }}.rule=Host(`hermes-{{ inventory_hostname }}.{{ hermes_domain }}`)
+Label=traefik.http.routers.hermes-dash-{{ inventory_hostname }}.entrypoints=websecure
+Label=traefik.http.routers.hermes-dash-{{ inventory_hostname }}.tls.certresolver=cloudflare
+Label=traefik.http.routers.hermes-dash-{{ inventory_hostname }}.service=hermes-dash-{{ inventory_hostname }}
+Label=traefik.http.services.hermes-dash-{{ inventory_hostname }}.loadbalancer.server.port={{ hermes_dashboard_port }}
+Label=traefik.http.routers.hermes-api-{{ inventory_hostname }}.rule=Host(`hermes-api-{{ inventory_hostname }}.{{ hermes_domain }}`)
+Label=traefik.http.routers.hermes-api-{{ inventory_hostname }}.entrypoints=websecure
+Label=traefik.http.routers.hermes-api-{{ inventory_hostname }}.tls.certresolver=cloudflare
+Label=traefik.http.routers.hermes-api-{{ inventory_hostname }}.service=hermes-api-{{ inventory_hostname }}
+Label=traefik.http.services.hermes-api-{{ inventory_hostname }}.loadbalancer.server.port={{ hermes_api_server_port }}
+{% endif %}
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target default.target

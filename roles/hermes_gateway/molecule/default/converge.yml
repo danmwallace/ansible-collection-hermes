@@ -1,0 +1,32 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Ensure data directory exists (normally created by hermes role)
+      ansible.builtin.file:
+        path: /opt/hermes/data
+        state: directory
+        owner: ansible
+        group: "{{ hermes_gateway_deploy_group | default('docker') }}"
+        mode: "0755"
+      become: true
+
+    - name: Apply hermes_gateway role with test values
+      ansible.builtin.import_role:
+        name: danmwallace.hermes.hermes_gateway
+      vars:
+        hermes_gateway_create_profiles: false
+        hermes_gateway_skip_docker: true
+        hermes_data_dir: /opt/hermes/data
+        hermes_profiles:
+          - name: assistant
+            soul: |
+              You are a helpful assistant for testing.
+            gateways:
+              - type: discord
+                bot_token: test-discord-token
+                allowed_users:
+                  - "123456789012345678"
+                admin_users:
+                  - "123456789012345678"

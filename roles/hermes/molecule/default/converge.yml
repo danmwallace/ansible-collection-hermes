@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Apply hermes role with test values
+      ansible.builtin.import_role:
+        name: danmwallace.hermes.hermes
+      vars:
+        hermes_domain: test.local
+        hermes_dashboard_basic_auth_password: test-password-not-for-production
+        hermes_api_server_key: test-api-key-min8chars
+        hermes_anthropic_api_key: test-anthropic-key
+        hermes_skip_compose: true

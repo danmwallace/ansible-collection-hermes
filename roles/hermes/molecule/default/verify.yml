@@ -1,0 +1,74 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat the deploy and data directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /opt/hermes
+        - /opt/hermes/data
+      register: hermes_dirs
+
+    - name: Assert directories exist with correct mode
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+          - item.stat.mode == '0755'
+      loop: "{{ hermes_dirs.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Stat the rendered docker-compose file
+      ansible.builtin.stat:
+        path: /opt/hermes/docker-compose.yml
+      register: hermes_compose_stat
+
+    - name: Assert docker-compose file rendered with mode 0600
+      ansible.builtin.assert:
+        that:
+          - hermes_compose_stat.stat.exists
+          - hermes_compose_stat.stat.mode == '0600'
+
+    - name: Read rendered docker-compose file
+      ansible.builtin.slurp:
+        src: /opt/hermes/docker-compose.yml
+      register: hermes_compose_contents
+
+    - name: Assert docker-compose contains expected values
+      vars:
+        rendered: "{{ hermes_compose_contents.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'nousresearch/hermes-agent:latest' in rendered"
+          - "'HERMES_DASHBOARD=1' in rendered"
+          - "'HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=test-password-not-for-production' in rendered"
+          - "'API_SERVER_ENABLED=true' in rendered"
+          - "'API_SERVER_KEY=test-api-key-min8chars' in rendered"
+          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"
+          - "'hermes-hermes-instance.test.local' in rendered"
+
+    - name: Stat the .env file
+      ansible.builtin.stat:
+        path: /opt/hermes/data/.env
+      register: hermes_env_stat
+
+    - name: Assert .env rendered with mode 0600
+      ansible.builtin.assert:
+        that:
+          - hermes_env_stat.stat.exists
+          - hermes_env_stat.stat.mode == '0600'
+
+    - name: Read rendered .env file
+      ansible.builtin.slurp:
+        src: /opt/hermes/data/.env
+      register: hermes_env_contents
+
+    - name: Assert .env contains API key
+      vars:
+        rendered: "{{ hermes_env_contents.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"

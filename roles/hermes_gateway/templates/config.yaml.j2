@@ -1,0 +1,40 @@
+# Managed by Ansible — danmwallace.hermes.hermes_gateway
+# Do not edit manually; changes will be overwritten on next run.
+
+{% set _model = hermes_default_model %}
+model:
+  provider: {{ _model.provider }}
+  model: {{ _model.model }}
+{% if _model.base_url is defined %}
+  base_url: {{ _model.base_url }}
+  api_key: {{ _model.api_key | default('none') }}
+{% endif %}
+
+{% set _ns = namespace(discord_gw=None) %}
+{% for profile in hermes_profiles %}
+{% for gw in profile.gateways | default([]) %}
+{% if gw.type == 'discord' and _ns.discord_gw is none %}
+{% set _ns.discord_gw = gw %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% if _ns.discord_gw is not none %}
+{% set _gw = _ns.discord_gw %}
+gateway:
+  platforms:
+    discord:
+      token: {{ _gw.bot_token }}
+{% if _gw.allowed_users | default([]) | length > 0 or _gw.admin_users | default([]) | length > 0 %}
+      extra:
+{% if _gw.allowed_users | default([]) | length > 0 %}
+        allow_from: {{ _gw.allowed_users | join(',') }}
+{% endif %}
+{% if _gw.admin_users | default([]) | length > 0 %}
+        allow_admin_from: {{ _gw.admin_users | join(',') }}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if hermes_config_extra %}
+{{ hermes_config_extra | to_nice_yaml(indent=2) }}
+{% endif %}

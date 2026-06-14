@@ -1,0 +1,48 @@
+---
+# defaults file for hermes_gateway
+
+# Container name — must match hermes role value on the same host
+hermes_container_name: hermes # noqa: var-naming[no-role-prefix]
+
+# Deploy and data directories — must match hermes role values on the same host
+hermes_deploy_dir: /opt/hermes # noqa: var-naming[no-role-prefix]
+hermes_data_dir: /opt/hermes/data # noqa: var-naming[no-role-prefix]
+hermes_gateway_deploy_group: docker
+
+# Global model default — overridable per profile via profile.model dict
+hermes_default_model: # noqa: var-naming[no-role-prefix]
+  provider: anthropic
+  model: claude-sonnet-4-6
+
+# Agent profiles (list of dicts — see argument_specs for shape)
+hermes_profiles: [] # noqa: var-naming[no-role-prefix]
+
+# When false, skip docker exec profile creation (set false in Molecule or
+# when the container is not yet running)
+hermes_gateway_create_profiles: true
+
+# When true, skip docker_container restart handler (molecule-safe default)
+hermes_gateway_skip_docker: false
+
+# Merged into config.yaml top-level — escape hatch for schema fields not
+# covered by the template
+hermes_config_extra: {} # noqa: var-naming[no-role-prefix]
+
+# Deployment mode: 'docker' (compose) or 'quadlet' (Podman systemd unit)
+hermes_gateway_deploy_mode: docker
+hermes_gateway_quadlet_dir: /etc/containers/systemd
+
+# Quadlet-specific: gateway container image (only used in quadlet mode)
+hermes_gateway_image: docker.io/nousresearch/hermes-agent # noqa: var-naming[no-role-prefix]
+hermes_gateway_image_tag: latest # noqa: var-naming[no-role-prefix]
+hermes_gateway_port: 8642
+
+# API server platform (OpenAI-compatible HTTP endpoint)
+hermes_gateway_api_server_enabled: true
+# These must be supplied from vault; defaults are empty so role is importable without secrets
+hermes_api_server_key: "" # noqa: var-naming[no-role-prefix]
+hermes_anthropic_api_key: "" # noqa: var-naming[no-role-prefix]
+
+# Traefik integration (quadlet mode)
+hermes_gateway_traefik_enabled: true
+hermes_gateway_hostname: ""

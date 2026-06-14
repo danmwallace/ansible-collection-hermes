@@ -1,0 +1,84 @@
+---
+- name: Assert dashboard password is set when dashboard is enabled
+  ansible.builtin.assert:
+    that: hermes_dashboard_basic_auth_password | length > 0
+    fail_msg: "hermes_dashboard_basic_auth_password must be set (supply from vault)"
+  when: hermes_dashboard_enabled
+
+- name: Assert API server key is set when API server is enabled
+  ansible.builtin.assert:
+    that: hermes_api_server_key | length > 0
+    fail_msg: "hermes_api_server_key must be set (minimum 8 characters, supply from vault)"
+  when: hermes_api_server_enabled
+
+- name: Ensure hermes deploy directory exists
+  ansible.builtin.file:
+    path: "{{ hermes_deploy_dir }}"
+    state: directory
+    owner: ansible
+    group: "{{ hermes_deploy_group }}"
+    mode: "0755"
+  become: true
+
+- name: Ensure hermes data directory exists
+  ansible.builtin.file:
+    path: "{{ hermes_data_dir }}"
+    state: directory
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
+    mode: "0750"
+  become: true
+
+- name: Render hermes data .env from template
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ hermes_data_dir }}/.env"
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
+    mode: "0600"
+  become: true
+  no_log: true
+  notify: Restart hermes compose project
+
+- name: Render hermes docker-compose.yml from template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ hermes_deploy_dir }}/docker-compose.yml"
+    owner: ansible
+    group: "{{ hermes_deploy_group }}"
+    mode: "0600"
+  become: true
+  no_log: true
+  notify: Restart hermes compose project
+
+- name: Deploy hermes via docker compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ hermes_deploy_dir }}"
+    files:
+      - docker-compose.yml
+    state: present
+    pull: "{{ hermes_pull_policy }}"
+  become: true
+  when: hermes_deploy_mode == 'docker'
+  tags:
+    - molecule-notest
+
+- name: Deploy hermes Quadlet container unit
+  ansible.builtin.template:
+    src: hermes.container.j2
+    dest: "{{ hermes_quadlet_dir }}/hermes.container"
+    mode: "0644"
+  become: true
+  when: hermes_deploy_mode == 'quadlet'
+  notify: Restart hermes service
+
+- name: Enable and start hermes.service (Quadlet)
+  ansible.builtin.systemd:
+    name: hermes.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  when: hermes_deploy_mode == 'quadlet'
+  tags:
+    - molecule-notest

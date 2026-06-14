@@ -1,0 +1,52 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Stat the config.yaml file
+      ansible.builtin.stat:
+        path: /opt/hermes/data/config.yaml
+      register: hermes_gateway_config_stat
+
+    - name: Assert config.yaml was rendered
+      ansible.builtin.assert:
+        that:
+          - hermes_gateway_config_stat.stat.exists
+          - hermes_gateway_config_stat.stat.mode == '0600'
+
+    - name: Read rendered config.yaml
+      ansible.builtin.slurp:
+        src: /opt/hermes/data/config.yaml
+      register: hermes_gateway_config_contents
+
+    - name: Assert config.yaml contains model and gateway config
+      vars:
+        rendered: "{{ hermes_gateway_config_contents.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'provider: anthropic' in rendered"
+          - "'model: claude-sonnet-4-6' in rendered"
+          - "'discord' in rendered"
+          - "'test-discord-token' in rendered"
+
+    - name: Stat the assistant SOUL.md file
+      ansible.builtin.stat:
+        path: /opt/hermes/data/profiles/assistant/SOUL.md
+      register: hermes_gateway_soul_stat
+
+    - name: Assert SOUL.md was rendered
+      ansible.builtin.assert:
+        that:
+          - hermes_gateway_soul_stat.stat.exists
+
+    - name: Read rendered SOUL.md
+      ansible.builtin.slurp:
+        src: /opt/hermes/data/profiles/assistant/SOUL.md
+      register: hermes_gateway_soul_contents
+
+    - name: Assert SOUL.md contains inline soul content
+      vars:
+        rendered: "{{ hermes_gateway_soul_contents.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'You are a helpful assistant for testing.' in rendered"

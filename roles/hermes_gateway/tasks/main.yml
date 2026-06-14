@@ -1,0 +1,86 @@
+---
+- name: Assert required variables are set
+  ansible.builtin.assert:
+    that:
+      - hermes_data_dir | length > 0
+      - hermes_profiles | length > 0
+    fail_msg: "hermes_data_dir and hermes_profiles must both be set."
+
+- name: Ensure per-profile data directories exist
+  ansible.builtin.file:
+    path: "{{ hermes_data_dir }}/profiles/{{ item.name }}"
+    state: directory
+    owner: ansible
+    group: "{{ hermes_gateway_deploy_group }}"
+    mode: "0755"
+  become: true
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create Hermes profiles via docker exec
+  community.docker.docker_container_exec:
+    container: "{{ hermes_container_name }}"
+    command: "hermes profile create {{ item.name }}"
+  become: true
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: hermes_gateway_profile_create_result
+  failed_when:
+    - hermes_gateway_profile_create_result.rc is defined
+    - hermes_gateway_profile_create_result.rc != 0
+    - "'already exists' not in (hermes_gateway_profile_create_result.stderr | default(''))"
+  changed_when:
+    - hermes_gateway_profile_create_result.rc is defined
+    - hermes_gateway_profile_create_result.rc == 0
+  when: hermes_gateway_create_profiles
+
+- name: Render config.yaml into data directory
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ hermes_data_dir }}/config.yaml"
+    owner: "10000"
+    group: "10000"
+    mode: "0640"
+  become: true
+  no_log: true
+  notify:
+    - Restart hermes container
+    - Restart hermes-gateway service
+
+- name: Render SOUL.md for profiles with soul content
+  ansible.builtin.template:
+    src: soul.md.j2
+    dest: "{{ hermes_data_dir }}/profiles/{{ item.name }}/SOUL.md"
+    owner: ansible
+    group: "{{ hermes_gateway_deploy_group }}"
+    mode: "0644"
+  become: true
+  loop: "{{ hermes_profiles }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.soul is defined and item.soul | length > 0
+  notify:
+    - Restart hermes container
+    - Restart hermes-gateway service
+
+- name: Deploy hermes-gateway Quadlet container unit
+  ansible.builtin.template:
+    src: hermes_gateway.container.j2
+    dest: "{{ hermes_gateway_quadlet_dir }}/hermes-gateway.container"
+    mode: "0644"
+  become: true
+  when: hermes_gateway_deploy_mode == 'quadlet'
+  notify: Restart hermes-gateway service
+
+- name: Enable and start hermes-gateway.service (Quadlet)
+  ansible.builtin.systemd:
+    name: hermes-gateway.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  when: hermes_gateway_deploy_mode == 'quadlet'
+  tags:
+    - molecule-notest

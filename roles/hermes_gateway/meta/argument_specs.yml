@@ -1,0 +1,92 @@
+---
+argument_specs:
+  main:
+    short_description: Configure Hermes Agent profiles, gateways, and identity files.
+    description:
+      - Templates config.yaml and per-profile SOUL.md into the hermes data directory.
+      - >-
+        Optionally creates profiles via docker exec when hermes_gateway_create_profiles
+        is true.
+      - >-
+        Re-runnable independently of the hermes role to reconfigure agents without
+        redeploying.
+    author:
+      - Dan Wallace
+    options:
+      hermes_container_name:
+        description: Name of the running Hermes container. Must match the hermes role value.
+        type: str
+        default: hermes
+      hermes_deploy_dir:
+        description: Host directory containing docker-compose.yml. Must match the hermes role value.
+        type: str
+        default: /opt/hermes
+      hermes_data_dir:
+        description: Path to the Hermes data directory on the host. Must match the hermes role value.
+        type: str
+        default: /opt/hermes/data
+      hermes_gateway_deploy_group:
+        description: Unix group for per-profile directory ownership.
+        type: str
+        default: docker
+      hermes_default_model:
+        description: Global model config applied to all profiles unless overridden per-profile.
+        type: dict
+        default:
+          provider: anthropic
+          model: claude-sonnet-4-6
+      hermes_profiles:
+        description: >-
+          List of agent profile definitions. Each profile is a dict with keys:
+          name (str, required), soul (str, optional), gateways (list of dicts, optional).
+          Gateway dicts require: type (str). Discord gateways also need: bot_token (str,
+          secret), allowed_users (list), admin_users (list).
+        type: list
+        elements: dict
+        required: true
+      hermes_gateway_create_profiles:
+        description: >-
+          When true, creates profiles via docker exec. Set false in Molecule or
+          pre-container runs.
+        type: bool
+        default: true
+      hermes_gateway_skip_docker:
+        description: >-
+          Skip the docker_container restart handler.
+          Set true in molecule/CI environments that cannot access Docker.
+        type: bool
+        default: false
+      hermes_config_extra:
+        description: >-
+          Dict merged into the top level of config.yaml for schema fields not
+          explicitly modelled.
+        type: dict
+        default: {}
+      hermes_gateway_deploy_mode:
+        type: str
+        default: docker
+        description: "Deployment mode: 'docker' (Docker Compose) or 'quadlet' (Podman systemd Quadlet)."
+      hermes_gateway_quadlet_dir:
+        type: str
+        default: /etc/containers/systemd
+        description: Directory where Quadlet container unit files are written (quadlet mode only).
+      hermes_gateway_image:
+        type: str
+        default: nousresearch/hermes-agent
+        description: Container image for the hermes-gateway Quadlet unit (quadlet mode only).
+      hermes_gateway_image_tag:
+        type: str
+        default: latest
+        description: Image tag for the hermes-gateway Quadlet unit (quadlet mode only).
+      hermes_gateway_port:
+        type: int
+        default: 3000
+        description: Port the gateway container exposes (used for Traefik loadbalancer in quadlet mode).
+      hermes_gateway_traefik_enabled:
+        type: bool
+        default: true
+        description: When true, emits Traefik labels in the Quadlet unit (quadlet mode only).
+      hermes_gateway_hostname:
+        type: str
+        default: ""
+        description: Traefik Host() rule hostname for the gateway (quadlet mode only).

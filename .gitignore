@@ -1,0 +1,8 @@
+.ansible/
+.claude/
+.venv/
+ansible.cfg
+group_vars/
+host_vars/
+*.tar.gz
+dist/

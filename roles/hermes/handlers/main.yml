@@ -1,0 +1,24 @@
+---
+- name: Restart hermes compose project
+  community.docker.docker_compose_v2:
+    project_src: "{{ hermes_deploy_dir }}"
+    files:
+      - docker-compose.yml
+    state: restarted
+  become: true
+  when: not (hermes_skip_compose | default(false) | bool) and hermes_deploy_mode == 'docker'
+  tags:
+    - molecule-notest
+
+- name: Restart hermes service
+  ansible.builtin.systemd:
+    name: hermes.service
+    state: restarted
+    daemon_reload: true
+  become: true
+  tags:
+    - molecule-notest
+  register: _hermes_quadlet_restart
+  failed_when:
+    - _hermes_quadlet_restart is failed
+    - "'Could not find the requested service' not in (_hermes_quadlet_restart.msg | default(''))"

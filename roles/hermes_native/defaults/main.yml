@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MIT
+---
+# OS user the agent runs as
+hermes_native_user: hermes
+
+# Where to clone the hermes-agent source
+hermes_native_install_dir: /home/hermes/hermes-agent
+
+# GitHub URL for the hermes-agent source repo
+hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
+
+# Git branch/tag to check out
+hermes_native_repo_version: main
+
+# Directory for cloned repos the agent will work on
+hermes_native_workspace_dir: /home/hermes/workspace
+
+# Git identity the agent commits as
+hermes_native_git_user_name: "Hermes"
+hermes_native_git_user_email: "hermes@wallace.boston"
+
+# Repos to pre-clone on first run (list of "org/repo" strings)
+hermes_native_repos: []
+
+# API server (exposes OpenAI-compatible endpoint for external callers)
+hermes_native_api_server_port: 8642
+hermes_native_api_server_key: ""      # supply from vault
+
+# Dashboard (web UI served by the native agent process)
+hermes_native_dashboard_enabled: true
+hermes_native_dashboard_port: 9119
+hermes_native_dashboard_username: hermes
+hermes_native_dashboard_password: ""  # supply from vault
+
+# Anthropic API key for the agent
+hermes_native_anthropic_api_key: ""   # supply from vault
+
+# Fine-grained GitHub PAT for gh CLI auth
+hermes_native_gh_token: ""            # supply from vault
+
+# Path for the env file read by the systemd service
+hermes_native_env_file: /etc/hermes-agent/env

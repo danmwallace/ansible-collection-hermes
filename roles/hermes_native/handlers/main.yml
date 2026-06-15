@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Restart hermes-agent service
+  ansible.builtin.systemd:
+    name: hermes-agent.service
+    state: restarted
+    daemon_reload: true
+  become: true

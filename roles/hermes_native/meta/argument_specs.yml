@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: MIT
+---
+argument_specs:
+  main:
+    short_description: Install NousResearch hermes-agent natively as a systemd service.
+    description:
+      - Creates a dedicated hermes OS user and clones the hermes-agent source from GitHub.
+      - Installs via uv into a project venv and runs hermes-agent as a systemd service.
+      - Configures git identity, SSH deploy key, and gh CLI auth for coding-agent workflows.
+      - Fedora Server only.
+    options:
+      hermes_native_user:
+        type: str
+        default: hermes
+        description: OS user account the agent runs as.
+      hermes_native_install_dir:
+        type: str
+        default: /home/hermes/hermes-agent
+        description: Directory where the hermes-agent source is cloned and venv is created.
+      hermes_native_repo_url:
+        type: str
+        default: https://github.com/NousResearch/hermes-agent
+        description: Git URL for the hermes-agent source repo.
+      hermes_native_repo_version:
+        type: str
+        default: main
+        description: Git branch or tag to check out.
+      hermes_native_workspace_dir:
+        type: str
+        default: /home/hermes/workspace
+        description: Directory pre-created for cloning repos the agent will work on.
+      hermes_native_git_user_name:
+        type: str
+        default: Hermes
+        description: git config user.name set globally for the hermes user.
+      hermes_native_git_user_email:
+        type: str
+        default: hermes@wallace.boston
+        description: git config user.email set globally for the hermes user.
+      hermes_native_repos:
+        type: list
+        elements: str
+        default: []
+        description: List of "org/repo" strings to pre-clone into hermes_native_workspace_dir.
+      hermes_native_api_server_port:
+        type: int
+        default: 8642
+        description: Port for the OpenAI-compatible API server.
+      hermes_native_api_server_key:
+        type: str
+        default: ""
+        no_log: true
+        description: API authentication key (minimum 8 characters). Supply from vault.
+      hermes_native_dashboard_enabled:
+        type: bool
+        default: true
+        description: Whether to enable the hermes web dashboard.
+      hermes_native_dashboard_port:
+        type: int
+        default: 9119
+        description: Port the dashboard listens on.
+      hermes_native_dashboard_username:
+        type: str
+        default: hermes
+        description: Basic auth username for the dashboard.
+      hermes_native_dashboard_password:
+        type: str
+        default: ""
+        no_log: true
+        description: Basic auth password for the dashboard. Supply from vault.
+      hermes_native_anthropic_api_key:
+        type: str
+        default: ""
+        no_log: true
+        description: Anthropic API key injected as ANTHROPIC_API_KEY. Supply from vault.
+      hermes_native_gh_token:
+        type: str
+        default: ""
+        no_log: true
+        description: Fine-grained GitHub PAT for gh CLI auth. Supply from vault.
+      hermes_native_env_file:
+        type: str
+        default: /etc/hermes-agent/env
+        description: Path of the EnvironmentFile read by the systemd service unit.

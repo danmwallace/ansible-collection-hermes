@@ -39,11 +39,6 @@ argument_specs:
         type: str
         default: hermes@wallace.boston
         description: git config user.email set globally for the hermes user.
-      hermes_native_repos:
-        type: list
-        elements: str
-        default: []
-        description: List of "org/repo" strings to pre-clone into hermes_native_workspace_dir.
       hermes_native_api_server_port:
         type: int
         default: 8642

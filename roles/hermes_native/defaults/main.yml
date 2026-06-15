@@ -19,9 +19,6 @@ hermes_native_workspace_dir: /home/hermes/workspace
 hermes_native_git_user_name: "Hermes"
 hermes_native_git_user_email: "hermes@wallace.boston"
 
-# Repos to pre-clone on first run (list of "org/repo" strings)
-hermes_native_repos: []
-
 # API server (exposes OpenAI-compatible endpoint for external callers)
 hermes_native_api_server_port: 8642
 hermes_native_api_server_key: ""      # supply from vault

@@ -24,7 +24,7 @@
   args:
     creates: "{{ hermes_native_install_dir }}/venv/bin/activate"
 
-- name: Install hermes-agent dependencies via uv sync
+- name: Install hermes-agent dependencies via uv sync  # noqa: no-handler
   ansible.builtin.command:
     cmd: "/home/{{ hermes_native_user }}/.local/bin/uv sync --extra all --locked"
     chdir: "{{ hermes_native_install_dir }}"
@@ -34,6 +34,6 @@
     HOME: "/home/{{ hermes_native_user }}"
     UV_PROJECT_ENVIRONMENT: "{{ hermes_native_install_dir }}/venv"
     UV_NO_CONFIG: "1"
-  args:
-    creates: "{{ hermes_native_install_dir }}/venv/bin/hermes"
+  when: hermes_native_git_clone is changed
+  changed_when: hermes_native_git_clone is changed
   notify: Restart hermes-agent service

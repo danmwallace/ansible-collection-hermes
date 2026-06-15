@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Generate SSH deploy key for hermes user
+  ansible.builtin.command:
+    cmd: >
+      ssh-keygen -t ed25519
+      -C "hermes@{{ inventory_hostname }}"
+      -f /home/{{ hermes_native_user }}/.ssh/id_ed25519
+      -N ""
+    creates: "/home/{{ hermes_native_user }}/.ssh/id_ed25519"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  register: hermes_native_keygen
+
+- name: Read SSH public key
+  ansible.builtin.slurp:
+    src: "/home/{{ hermes_native_user }}/.ssh/id_ed25519.pub"
+  register: hermes_native_ssh_pubkey
+  become: true
+
+- name: Display SSH public key for GitHub deploy key registration
+  ansible.builtin.debug:
+    msg: |
+      *** ACTION REQUIRED ***
+      Add this public key to each target GitHub repo:
+        GitHub → Settings → Deploy keys → Add deploy key → Allow write access
+
+      {{ hermes_native_ssh_pubkey.content | b64decode | trim }}
+
+- name: Write ~/.ssh/config for hermes user
+  ansible.builtin.copy:
+    dest: "/home/{{ hermes_native_user }}/.ssh/config"
+    content: |
+      Host github.com
+        HostName github.com
+        User git
+        IdentityFile /home/{{ hermes_native_user }}/.ssh/id_ed25519
+        StrictHostKeyChecking accept-new
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0600"
+  become: true

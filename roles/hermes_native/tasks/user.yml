@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Ensure hermes group exists
+  ansible.builtin.group:
+    name: "{{ hermes_native_user }}"
+    state: present
+  become: true
+
+- name: Ensure hermes user exists
+  ansible.builtin.user:
+    name: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    home: "/home/{{ hermes_native_user }}"
+    shell: /bin/bash
+    create_home: true
+    system: false
+    state: present
+  become: true
+
+- name: Ensure .ssh directory exists for hermes user
+  ansible.builtin.file:
+    path: "/home/{{ hermes_native_user }}/.ssh"
+    state: directory
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0700"
+  become: true
+
+- name: Ensure workspace directory exists
+  ansible.builtin.file:
+    path: "{{ hermes_native_workspace_dir }}"
+    state: directory
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0755"
+  become: true
+
+- name: Ensure .local/bin directory exists for hermes user
+  ansible.builtin.file:
+    path: "/home/{{ hermes_native_user }}/.local/bin"
+    state: directory
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0755"
+  become: true

@@ -8,6 +8,8 @@ argument_specs:
       - Installs via uv into a project venv and runs hermes-agent as a systemd service.
       - Configures git identity, SSH deploy key, and gh CLI auth for coding-agent workflows.
       - Fedora Server only.
+    author:
+      - Dan Wallace
     options:
       hermes_native_user:
         type: str

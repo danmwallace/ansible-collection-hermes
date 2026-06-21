@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Install coding agent system packages
+  ansible.builtin.dnf:
+    name:
+      - git
+      - make
+      - jq
+      - yq
+      - ripgrep
+      - python3
+      - python3-pip
+      - curl
+      - nodejs
+      - npm
+    state: present
+  become: true

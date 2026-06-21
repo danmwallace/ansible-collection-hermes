@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Clone hermes-agent source
+  ansible.builtin.git:
+    repo: "{{ hermes_native_repo_url }}"
+    dest: "{{ hermes_native_install_dir }}"
+    version: "{{ hermes_native_repo_version }}"
+    single_branch: true
+    update: true
+    force: true
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  register: hermes_native_git_clone
+  notify: Restart hermes-agent service
+
+- name: Create hermes-agent venv (Python 3.11)
+  ansible.builtin.command:
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv venv venv --python 3.11"
+    chdir: "{{ hermes_native_install_dir }}"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+    UV_NO_CONFIG: "1"
+  args:
+    creates: "{{ hermes_native_install_dir }}/venv/bin/activate"
+
+- name: Install hermes-agent dependencies via uv sync  # noqa: no-handler
+  ansible.builtin.command:
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv sync --extra all --locked"
+    chdir: "{{ hermes_native_install_dir }}"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+    UV_PROJECT_ENVIRONMENT: "{{ hermes_native_install_dir }}/venv"
+    UV_NO_CONFIG: "1"
+  when: hermes_native_git_clone is changed
+  changed_when: hermes_native_git_clone is changed
+  notify: Restart hermes-agent service

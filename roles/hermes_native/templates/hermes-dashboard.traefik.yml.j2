@@ -1,0 +1,15 @@
+# Managed by Ansible — danmwallace.hermes.hermes_native
+http:
+  routers:
+    hermes-dash-native:
+      rule: "Host(`{{ hermes_native_dashboard_traefik_hostname }}`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+      service: hermes-dash-native
+  services:
+    hermes-dash-native:
+      loadBalancer:
+        servers:
+          - url: "http://host.containers.internal:{{ hermes_native_dashboard_port }}"

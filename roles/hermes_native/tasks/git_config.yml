@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Set git user.name for hermes user
+  community.general.git_config:
+    name: user.name
+    value: "{{ hermes_native_git_user_name }}"
+    scope: global
+    state: present
+  become: true
+  become_user: "{{ hermes_native_user }}"
+
+- name: Set git user.email for hermes user
+  community.general.git_config:
+    name: user.email
+    value: "{{ hermes_native_git_user_email }}"
+    scope: global
+    state: present
+  become: true
+  become_user: "{{ hermes_native_user }}"
+
+- name: Set git default branch to main
+  community.general.git_config:
+    name: init.defaultBranch
+    value: main
+    scope: global
+    state: present
+  become: true
+  become_user: "{{ hermes_native_user }}"

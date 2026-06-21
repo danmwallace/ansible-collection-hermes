@@ -1,0 +1,21 @@
+# Managed by Ansible — danmwallace.hermes.hermes_native
+[Unit]
+Description=Hermes AI Agent (native)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ hermes_native_user }}
+Group={{ hermes_native_user }}
+WorkingDirectory=/home/{{ hermes_native_user }}
+EnvironmentFile={{ hermes_native_env_file }}
+ExecStart={{ hermes_native_install_dir }}/venv/bin/hermes gateway run
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hermes-agent
+
+[Install]
+WantedBy=multi-user.target

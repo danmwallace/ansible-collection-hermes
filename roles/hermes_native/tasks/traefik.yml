@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Deploy Traefik route for Hermes native dashboard
+  ansible.builtin.template:
+    src: hermes-dashboard.traefik.yml.j2
+    dest: "{{ hermes_native_traefik_conf_dir }}/hermes-dashboard.yml"
+    mode: "0600"
+  become: true
+  when: hermes_native_dashboard_traefik_enabled and hermes_native_dashboard_traefik_hostname | length > 0
+
+- name: Remove Traefik route for Hermes native dashboard
+  ansible.builtin.file:
+    path: "{{ hermes_native_traefik_conf_dir }}/hermes-dashboard.yml"
+    state: absent
+  become: true
+  when: not hermes_native_dashboard_traefik_enabled or hermes_native_dashboard_traefik_hostname | length == 0

@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Authenticate gh CLI with fine-grained PAT
+  ansible.builtin.shell:
+    cmd: "printf '%s' '{{ hermes_native_gh_token }}' | gh auth login --with-token" # noqa: risky-shell-pipe
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  changed_when: false
+  no_log: true
+  when: hermes_native_gh_token | length > 0
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+
+- name: Verify gh auth status
+  ansible.builtin.command:
+    cmd: gh auth status
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  register: hermes_native_gh_auth_status
+  changed_when: false
+  failed_when: hermes_native_gh_auth_status.rc != 0
+  when: hermes_native_gh_token | length > 0
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"

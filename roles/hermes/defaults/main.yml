@@ -33,6 +33,7 @@ hermes_dashboard_basic_auth_password: ""
 hermes_api_server_enabled: true
 hermes_api_server_port: 8642
 hermes_api_server_key: ""
+hermes_api_server_model_name: hermes-agent
 hermes_api_server_cors_origins: ""
 
 # Traefik integration

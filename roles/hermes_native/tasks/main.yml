@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Assert required secrets are provided
+  ansible.builtin.assert:
+    that:
+      - hermes_native_anthropic_api_key | length > 0
+      - hermes_native_api_server_key | length >= 8
+    fail_msg: >
+      hermes_native_anthropic_api_key and hermes_native_api_server_key (min 8 chars)
+      must both be set. Supply from vault.
+
+- name: Create hermes user and workspace
+  ansible.builtin.import_tasks: user.yml
+
+- name: Install system packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Install uv and Python tools
+  ansible.builtin.import_tasks: uv.yml
+
+- name: Install gh CLI
+  ansible.builtin.import_tasks: gh.yml
+
+- name: Install hermes-agent from source
+  ansible.builtin.import_tasks: install.yml
+
+- name: Configure systemd service
+  ansible.builtin.import_tasks: service.yml
+
+- name: Register Hermes dashboard with Traefik
+  ansible.builtin.import_tasks: traefik.yml
+
+- name: Configure git credential helper
+  ansible.builtin.import_tasks: ssh.yml
+
+- name: Configure git identity
+  ansible.builtin.import_tasks: git_config.yml
+
+- name: Authenticate gh CLI
+  ansible.builtin.import_tasks: gh_auth.yml

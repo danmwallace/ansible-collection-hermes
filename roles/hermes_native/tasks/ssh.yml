@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Configure gh credential helper for HTTPS git operations
+  community.general.git_config:
+    name: credential.helper
+    value: "gh auth git-credential"
+    scope: global
+    state: present
+  become: true
+  become_user: "{{ hermes_native_user }}"

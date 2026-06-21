@@ -24,7 +24,9 @@ Environment=HERMES_DASHBOARD_BASIC_AUTH_PASSWORD={{ hermes_dashboard_basic_auth_
 {% if hermes_api_server_enabled %}
 Environment=API_SERVER_ENABLED=true
 Environment=API_SERVER_HOST=0.0.0.0
+Environment=API_SERVER_PORT={{ hermes_api_server_port }}
 Environment=API_SERVER_KEY={{ hermes_api_server_key }}
+Environment=API_SERVER_MODEL_NAME={{ hermes_api_server_model_name }}
 {% if hermes_api_server_cors_origins %}
 Environment=API_SERVER_CORS_ORIGINS={{ hermes_api_server_cors_origins }}
 {% endif %}

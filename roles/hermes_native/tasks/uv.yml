@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Install uv for hermes user
+  ansible.builtin.shell:
+    cmd: set -e -o pipefail; curl -LsSf https://astral.sh/uv/install.sh | sh
+    creates: "/home/{{ hermes_native_user }}/.local/bin/uv"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+  # noqa command-instead-of-module: uv installer requires piping script (no idempotent package)
+
+- name: Install ansible-lint via uv tool
+  ansible.builtin.command:
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv tool install ansible-lint --upgrade"
+    creates: "/home/{{ hermes_native_user }}/.local/bin/ansible-lint"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+
+- name: Install molecule via uv tool
+  ansible.builtin.command:
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv tool install molecule --upgrade"
+    creates: "/home/{{ hermes_native_user }}/.local/bin/molecule"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"

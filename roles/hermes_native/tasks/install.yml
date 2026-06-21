@@ -7,6 +7,7 @@
     version: "{{ hermes_native_repo_version }}"
     single_branch: true
     update: true
+    force: true
   become: true
   become_user: "{{ hermes_native_user }}"
   register: hermes_native_git_clone

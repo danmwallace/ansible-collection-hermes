@@ -20,6 +20,16 @@
   no_log: true
   notify: Restart hermes-agent service
 
+- name: Render hermes-agent config.yaml
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "/home/{{ hermes_native_user }}/config.yaml"
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0640"
+  become: true
+  notify: Restart hermes-agent service
+
 - name: Render hermes-agent systemd unit
   ansible.builtin.template:
     src: hermes-agent.service.j2
@@ -37,5 +47,27 @@
     state: started
     daemon_reload: true
   become: true
+  tags:
+    - molecule-notest
+
+- name: Render hermes-dashboard systemd unit
+  ansible.builtin.template:
+    src: hermes-dashboard.service.j2
+    dest: /etc/systemd/system/hermes-dashboard.service
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: hermes_native_dashboard_enabled
+  notify: Restart hermes-dashboard service
+
+- name: Enable and start hermes-dashboard.service
+  ansible.builtin.systemd:
+    name: hermes-dashboard.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+  when: hermes_native_dashboard_enabled
   tags:
     - molecule-notest

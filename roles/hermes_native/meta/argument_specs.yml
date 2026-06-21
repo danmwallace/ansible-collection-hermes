@@ -79,3 +79,15 @@ argument_specs:
         type: str
         default: /etc/hermes-agent/env
         description: Path of the EnvironmentFile read by the systemd service unit.
+      hermes_native_traefik_conf_dir:
+        type: str
+        default: /opt/podman/traefik/conf.d
+        description: Directory where Traefik file provider route files are dropped.
+      hermes_native_dashboard_traefik_enabled:
+        type: bool
+        default: false
+        description: When true, write a Traefik file provider route for the dashboard.
+      hermes_native_dashboard_traefik_hostname:
+        type: str
+        default: ""
+        description: FQDN Traefik should route to the dashboard (e.g. hermes-dash-ai-master.wallace.boston).

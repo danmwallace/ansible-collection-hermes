@@ -22,6 +22,7 @@ hermes_native_git_user_email: "hermes@wallace.boston"
 # API server (exposes OpenAI-compatible endpoint for external callers)
 hermes_native_api_server_port: 8642
 hermes_native_api_server_key: ""      # supply from vault
+hermes_native_api_server_model_name: hermes-agent
 
 # Dashboard (web UI served by the native agent process)
 hermes_native_dashboard_enabled: true
@@ -37,3 +38,11 @@ hermes_native_gh_token: ""            # supply from vault
 
 # Path for the env file read by the systemd service
 hermes_native_env_file: /etc/hermes-agent/env
+
+# Approvals policy — controls what hermes auto-approves in cron/gateway
+hermes_native_approvals_cron_mode: deny
+
+# Traefik integration — expose the dashboard via HTTPS
+hermes_native_traefik_conf_dir: /opt/podman/traefik/conf.d
+hermes_native_dashboard_traefik_enabled: false
+hermes_native_dashboard_traefik_hostname: ""

@@ -33,6 +33,7 @@ hermes_dashboard_basic_auth_password: ""
 hermes_api_server_enabled: true
 hermes_api_server_port: 8642
 hermes_api_server_key: ""
+hermes_api_server_model_name: hermes-agent
 hermes_api_server_cors_origins: ""
 
 # Traefik integration
@@ -54,9 +55,3 @@ hermes_quadlet_dir: /etc/containers/systemd
 # When true, skip the docker_compose_v2 restart handler.
 # Set true in Molecule or CI environments that cannot access Docker.
 hermes_skip_compose: false
-
-# Google OAuth for MCP servers (Gmail, Google Calendar)
-hermes_google_client_id: ""
-hermes_google_client_secret: ""
-hermes_gmail_refresh_token: ""
-hermes_gcal_refresh_token: ""

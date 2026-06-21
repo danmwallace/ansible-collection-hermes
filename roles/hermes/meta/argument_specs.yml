@@ -135,23 +135,3 @@ argument_specs:
         description: >-
           Skip the docker_compose_v2 restart handler.
           Set true in Molecule or CI environments that cannot access Docker.
-      hermes_google_client_id:
-        description: Google OAuth Client ID for MCP servers (Gmail, Google Calendar). Supply from vault.
-        type: str
-        no_log: true
-        default: ""
-      hermes_google_client_secret:
-        description: Google OAuth Client Secret. Supply from vault.
-        type: str
-        no_log: true
-        default: ""
-      hermes_gmail_refresh_token:
-        description: OAuth refresh token scoped to Gmail. Supply from vault.
-        type: str
-        no_log: true
-        default: ""
-      hermes_gcal_refresh_token:
-        description: OAuth refresh token scoped to Google Calendar. Supply from vault.
-        type: str
-        no_log: true
-        default: ""

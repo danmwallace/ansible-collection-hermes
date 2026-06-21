@@ -5,6 +5,37 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-21
+
+### Added
+
+- `hermes_native`: `hermes-dashboard.service` — separate systemd unit that runs
+  `hermes dashboard` so the web UI is available on the native install (Docker's
+  s6-rc supervision is not available outside the container).
+- `hermes_native`: `config.yaml.j2` template — manages `/home/hermes/config.yaml`
+  for `approvals.cron_mode` and `platforms.api_server.enabled`, making both
+  settings idempotent under Ansible.
+- `hermes_native`: Traefik file-provider route template
+  (`hermes-dashboard.traefik.yml.j2`) — exposes the native dashboard over HTTPS
+  via Traefik's `conf.d/` directory when
+  `hermes_native_dashboard_traefik_enabled: true`.
+- `hermes_native`: `hermes_native_api_server_model_name` variable (default:
+  `hermes-agent`) written to the systemd env file as `API_SERVER_MODEL_NAME`.
+- `hermes`: `hermes_api_server_model_name` variable (default: `hermes-agent`)
+  rendered as `API_SERVER_MODEL_NAME` in the Quadlet container unit.
+- `hermes`: `API_SERVER_PORT` rendered in the Quadlet container unit from
+  `hermes_api_server_port` (was present in defaults but missing from the unit).
+
+### Fixed
+
+- `hermes_native`: `force: true` added to the `ansible.builtin.git` task to
+  prevent idempotency failures caused by npm modifying `package-lock.json`
+  during the dashboard build step.
+- `hermes_native`: replaced SSH deploy key with HTTPS gh credential helper for
+  simpler repository access.
+- `hermes_native`: corrected `ExecStart` to use `hermes gateway run` instead of
+  bare `hermes`.
+
 ## [1.1.0] - 2026-06-14
 
 ### Added

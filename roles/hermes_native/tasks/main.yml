@@ -27,6 +27,9 @@
 - name: Configure systemd service
   ansible.builtin.import_tasks: service.yml
 
+- name: Register Hermes dashboard with Traefik
+  ansible.builtin.import_tasks: traefik.yml
+
 - name: Configure git credential helper
   ansible.builtin.import_tasks: ssh.yml
 

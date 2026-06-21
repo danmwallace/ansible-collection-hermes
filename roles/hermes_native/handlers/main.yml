@@ -12,3 +12,16 @@
   failed_when:
     - _hermes_native_service_restart is failed
     - "'Could not find the requested service' not in (_hermes_native_service_restart.msg | default(''))"
+
+- name: Restart hermes-dashboard service
+  ansible.builtin.systemd:
+    name: hermes-dashboard.service
+    state: restarted
+    daemon_reload: true
+  become: true
+  tags:
+    - molecule-notest
+  register: _hermes_native_dashboard_restart
+  failed_when:
+    - _hermes_native_dashboard_restart is failed
+    - "'Could not find the requested service' not in (_hermes_native_dashboard_restart.msg | default(''))"

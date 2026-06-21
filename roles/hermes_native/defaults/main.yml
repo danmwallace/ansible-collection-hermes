@@ -40,6 +40,7 @@ hermes_native_gh_token: ""            # supply from vault
 hermes_native_env_file: /etc/hermes-agent/env
 
 # Approvals policy — controls what hermes auto-approves in cron/gateway
+hermes_native_approvals_mode: "manual"
 hermes_native_approvals_cron_mode: deny
 
 # Traefik integration — expose the dashboard via HTTPS

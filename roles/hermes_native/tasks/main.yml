@@ -27,7 +27,7 @@
 - name: Configure systemd service
   ansible.builtin.import_tasks: service.yml
 
-- name: Configure SSH deploy key
+- name: Configure git credential helper
   ansible.builtin.import_tasks: ssh.yml
 
 - name: Configure git identity

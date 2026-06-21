@@ -6,7 +6,7 @@ argument_specs:
     description:
       - Creates a dedicated hermes OS user and clones the hermes-agent source from GitHub.
       - Installs via uv into a project venv and runs hermes-agent as a systemd service.
-      - Configures git identity, SSH deploy key, and gh CLI auth for coding-agent workflows.
+      - Configures git identity, gh CLI auth, and HTTPS credential helper for coding-agent workflows.
       - Fedora Server only.
     author:
       - Dan Wallace

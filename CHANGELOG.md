@@ -5,6 +5,15 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-21
+
+### Fixed
+
+- `hermes`: restore `hermes_google_client_id`, `hermes_google_client_secret`,
+  `hermes_gmail_refresh_token`, and `hermes_gcal_refresh_token` defaults (empty
+  strings) that were accidentally removed in v1.2.0; `env.j2` references them in a
+  conditional block so their absence caused an undefined-variable error on every run.
+
 ## [1.2.0] - 2026-06-21
 
 ### Added

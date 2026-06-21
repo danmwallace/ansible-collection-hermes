@@ -45,6 +45,12 @@ hermes_domain: ""
 hermes_anthropic_api_key: ""
 hermes_openai_api_key: ""
 
+# Google OAuth for MCP servers (Gmail, Google Calendar)
+hermes_google_client_id: ""
+hermes_google_client_secret: ""
+hermes_gmail_refresh_token: ""
+hermes_gcal_refresh_token: ""
+
 # Docker image pull policy (always, missing, never, build)
 hermes_pull_policy: missing
 

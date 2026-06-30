@@ -5,6 +5,16 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-06-30
+
+### Added
+
+- `claude_code`: new role — installs Claude Code CLI for the `hermes` user and
+  writes a `settings.json` scoping it to Hermes orchestration context.
+- `hermes_native`: profile provisioning support (`tasks/profiles.yml`,
+  `templates/profile_config.yaml.j2`) — idempotently renders per-profile
+  `config.yaml` files under `HERMES_HOME`.
+
 ## [1.2.3] - 2026-06-30
 
 ### Added

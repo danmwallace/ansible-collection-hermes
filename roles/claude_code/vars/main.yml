@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# Internal role defaults — not meant to be overridden directly.
+# Use claude_code_settings in inventory to merge overrides on top.
+---
+_claude_code_default_settings:
+  permissions:
+    allow:
+      - "Read"
+      - "Edit"
+      - "Write"
+      - "Bash(git *)"
+      - "Bash(npm *)"
+      - "Bash(make *)"
+      - "Bash(uv *)"
+      - "Bash(python3 *)"
+      - "Bash(rg *)"
+      - "Bash(fd *)"
+      - "WebSearch"
+    deny:
+      - "Bash(rm -rf /*)"
+      - "Bash(curl * | bash)"
+      - "Bash(wget * | sh)"

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Ensure ~/.claude directory exists
+  ansible.builtin.file:
+    path: "{{ claude_code_config_dir }}"
+    state: directory
+    owner: "{{ claude_code_user }}"
+    group: "{{ claude_code_user }}"
+    mode: "0750"
+  become: true
+
+- name: Ensure ~/.claude/commands directory exists
+  ansible.builtin.file:
+    path: "{{ claude_code_config_dir }}/commands"
+    state: directory
+    owner: "{{ claude_code_user }}"
+    group: "{{ claude_code_user }}"
+    mode: "0750"
+  become: true
+
+- name: Write global settings.json
+  ansible.builtin.template:
+    src: settings.json.j2
+    dest: "{{ claude_code_config_dir }}/settings.json"
+    owner: "{{ claude_code_user }}"
+    group: "{{ claude_code_user }}"
+    mode: "0640"
+  become: true
+
+- name: Write global CLAUDE.md
+  ansible.builtin.copy:
+    content: "{{ claude_code_global_claude_md }}"
+    dest: "{{ claude_code_config_dir }}/CLAUDE.md"
+    owner: "{{ claude_code_user }}"
+    group: "{{ claude_code_user }}"
+    mode: "0640"
+  become: true
+  when: claude_code_global_claude_md | length > 0

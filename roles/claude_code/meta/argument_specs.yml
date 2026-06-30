@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+---
+argument_specs:
+  main:
+    short_description: Install and configure the Claude Code CLI.
+    description:
+      - Installs Node.js and npm (idempotent), then installs @anthropic-ai/claude-code globally via npm.
+      - Creates ~/.claude/ with a settings.json and optional global CLAUDE.md for the target user.
+      - Does NOT perform authentication. After running the role, the user must log in manually
+        by running 'claude' as the target OS user and completing browser OAuth, or by setting
+        ANTHROPIC_API_KEY in the user's environment.
+      - Fedora Server only.
+    author:
+      - Dan Wallace
+    options:
+      claude_code_user:
+        type: str
+        default: hermes
+        description: OS user under whose home directory ~/.claude/ is created.
+      claude_code_npm_scope:
+        type: str
+        default: global
+        description: npm install scope. 'global' installs to /usr/lib/node_modules (requires root).
+      claude_code_version:
+        type: str
+        default: latest
+        description: >
+          npm package version to install. Use 'latest' to always install the newest
+          release, or pin to a specific version string (e.g. '1.0.3').
+      claude_code_config_dir:
+        type: str
+        default: "/home/{{ claude_code_user }}/.claude"
+        description: Path to the user's Claude config directory.
+      claude_code_global_claude_md:
+        type: str
+        default: ""
+        description: >
+          Contents of the global ~/.claude/CLAUDE.md file. When non-empty, the file is
+          written and applies to all Claude Code sessions for this user. Leave empty to
+          skip writing the file.
+      claude_code_settings:
+        type: dict
+        default: {}
+        description: >
+          Settings merged on top of the role's built-in defaults and written to
+          ~/.claude/settings.json. Use this to override permissions, add hooks,
+          or set any other Claude Code settings without replacing the full defaults.

@@ -43,3 +43,14 @@
     group: "{{ hermes_native_user }}"
     mode: "0755"
   become: true
+
+- name: Grant hermes user passwordless sudo
+  ansible.builtin.copy:
+    content: "{{ hermes_native_user }} ALL=(ALL) NOPASSWD: ALL\n"
+    dest: "/etc/sudoers.d/{{ hermes_native_user }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  become: true
+  when: hermes_native_nopasswd_sudo | bool

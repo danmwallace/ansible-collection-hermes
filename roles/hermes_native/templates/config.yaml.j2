@@ -3,6 +3,21 @@
 approvals:
   mode: {{ hermes_native_approvals_mode }}
   cron_mode: {{ hermes_native_approvals_cron_mode }}
+{% if hermes_native_discord_bot_token | length > 0 %}
+gateway:
+  platforms:
+    discord:
+      token: {{ hermes_native_discord_bot_token }}
+{% if hermes_native_discord_allowed_users | length > 0 or hermes_native_discord_admin_users | length > 0 %}
+      extra:
+{% if hermes_native_discord_allowed_users | length > 0 %}
+        allow_from: {{ hermes_native_discord_allowed_users | join(',') }}
+{% endif %}
+{% if hermes_native_discord_admin_users | length > 0 %}
+        allow_admin_from: {{ hermes_native_discord_admin_users | join(',') }}
+{% endif %}
+{% endif %}
+{% endif %}
 platforms:
   api_server:
     enabled: true

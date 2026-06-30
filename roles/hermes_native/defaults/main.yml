@@ -39,6 +39,14 @@ hermes_native_gh_token: ""            # supply from vault
 # Path for the env file read by the systemd service
 hermes_native_env_file: /etc/hermes-agent/env
 
+# Discord gateway (optional — leave bot_token empty to disable)
+hermes_native_discord_bot_token: ""   # supply from vault
+hermes_native_discord_allowed_users: []
+hermes_native_discord_admin_users: []
+
+# Passwordless sudo for the hermes user (useful for coding-agent workflows)
+hermes_native_nopasswd_sudo: false
+
 # Approvals policy — controls what hermes auto-approves in cron/gateway
 hermes_native_approvals_mode: "manual"
 hermes_native_approvals_cron_mode: deny

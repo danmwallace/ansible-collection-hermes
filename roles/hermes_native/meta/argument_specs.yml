@@ -91,3 +91,20 @@ argument_specs:
         type: str
         default: ""
         description: FQDN Traefik should route to the dashboard (e.g. hermes-dash-ai-master.wallace.boston).
+      hermes_native_discord_bot_token:
+        type: str
+        default: ""
+        no_log: true
+        description: Discord bot token. When set, adds a Discord gateway section to config.yaml. Supply from vault.
+      hermes_native_discord_allowed_users:
+        type: list
+        default: []
+        description: List of Discord user IDs permitted to send messages to the agent.
+      hermes_native_discord_admin_users:
+        type: list
+        default: []
+        description: List of Discord user IDs with admin privileges over the agent.
+      hermes_native_nopasswd_sudo:
+        type: bool
+        default: false
+        description: When true, writes /etc/sudoers.d/hermes granting the hermes user passwordless sudo. Validated with visudo before applying.

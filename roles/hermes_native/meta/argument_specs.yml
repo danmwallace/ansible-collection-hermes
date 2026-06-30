@@ -91,3 +91,13 @@ argument_specs:
         type: str
         default: ""
         description: FQDN Traefik should route to the dashboard (e.g. hermes-dash-ai-master.wallace.boston).
+      hermes_native_profiles:
+        type: list
+        default: []
+        elements: dict
+        description: >
+          Additional profiles to provision alongside the default.
+          Each element must have a 'name' key (the profile directory name,
+          e.g. "coding") and a 'config' key (a mapping rendered verbatim
+          into ~/profiles/<name>/config.yaml via to_nice_yaml).
+          The default profile is managed separately by config.yaml.j2.

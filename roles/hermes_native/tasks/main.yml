@@ -38,3 +38,6 @@
 
 - name: Authenticate gh CLI
   ansible.builtin.import_tasks: gh_auth.yml
+
+- name: Provision additional profiles
+  ansible.builtin.import_tasks: profiles.yml

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 namespace: danmwallace
 name: hermes
-version: 1.2.2
+version: 1.2.3
 readme: README.md
 authors:
   - Dan Wallace <dan.m.wallace@gmail.com>

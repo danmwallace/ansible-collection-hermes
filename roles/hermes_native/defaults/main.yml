@@ -47,3 +47,11 @@ hermes_native_approvals_cron_mode: deny
 hermes_native_traefik_conf_dir: /opt/podman/traefik/conf.d
 hermes_native_dashboard_traefik_enabled: false
 hermes_native_dashboard_traefik_hostname: ""
+
+# Additional profiles to provision alongside the default.
+# Each entry is a dict with:
+#   name:   profile directory name (e.g. "coding")
+#   config: mapping rendered verbatim into ~/profiles/<name>/config.yaml
+# The default profile config.yaml is managed by the config.yaml.j2 template
+# and is not affected by this list.
+hermes_native_profiles: []

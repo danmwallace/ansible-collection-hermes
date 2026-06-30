@@ -8,6 +8,7 @@ gateway:
   platforms:
     discord:
       token: {{ hermes_native_discord_bot_token }}
+      require_mention: {{ hermes_native_discord_require_mention | lower }}
 {% if hermes_native_discord_allowed_users | length > 0 or hermes_native_discord_admin_users | length > 0 %}
       extra:
 {% if hermes_native_discord_allowed_users | length > 0 %}

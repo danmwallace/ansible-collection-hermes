@@ -104,6 +104,10 @@ argument_specs:
         type: list
         default: []
         description: List of Discord user IDs with admin privileges over the agent.
+      hermes_native_discord_require_mention:
+        type: bool
+        default: true
+        description: When true, the Discord bot only responds when directly @mentioned. Reduces attack surface for single-user deployments.
       hermes_native_nopasswd_sudo:
         type: bool
         default: false

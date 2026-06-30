@@ -43,6 +43,7 @@ hermes_native_env_file: /etc/hermes-agent/env
 hermes_native_discord_bot_token: ""   # supply from vault
 hermes_native_discord_allowed_users: []
 hermes_native_discord_admin_users: []
+hermes_native_discord_require_mention: true
 
 # Passwordless sudo for the hermes user (useful for coding-agent workflows)
 hermes_native_nopasswd_sudo: false

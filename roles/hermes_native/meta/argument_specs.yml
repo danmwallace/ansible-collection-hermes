@@ -65,6 +65,14 @@ argument_specs:
         default: ""
         no_log: true
         description: Basic auth password for the dashboard. Supply from vault.
+      hermes_native_model_provider:
+        type: str
+        default: anthropic
+        description: Model provider (anthropic, openai, openrouter, etc.).
+      hermes_native_model:
+        type: str
+        default: claude-sonnet-4-6
+        description: Model name passed to the provider.
       hermes_native_anthropic_api_key:
         type: str
         default: ""
@@ -91,13 +99,24 @@ argument_specs:
         type: str
         default: ""
         description: FQDN Traefik should route to the dashboard (e.g. hermes-dash-ai-master.wallace.boston).
-      hermes_native_profiles:
+      hermes_native_discord_bot_token:
+        type: str
+        default: ""
+        no_log: true
+        description: Discord bot token. When set, adds a Discord gateway section to config.yaml. Supply from vault.
+      hermes_native_discord_allowed_users:
         type: list
         default: []
-        elements: dict
-        description: >
-          Additional profiles to provision alongside the default.
-          Each element must have a 'name' key (the profile directory name,
-          e.g. "coding") and a 'config' key (a mapping rendered verbatim
-          into ~/profiles/<name>/config.yaml via to_nice_yaml).
-          The default profile is managed separately by config.yaml.j2.
+        description: List of Discord user IDs permitted to send messages to the agent.
+      hermes_native_discord_admin_users:
+        type: list
+        default: []
+        description: List of Discord user IDs with admin privileges over the agent.
+      hermes_native_discord_require_mention:
+        type: bool
+        default: true
+        description: When true, the Discord bot only responds when directly @mentioned. Reduces attack surface for single-user deployments.
+      hermes_native_nopasswd_sudo:
+        type: bool
+        default: false
+        description: When true, writes /etc/sudoers.d/hermes granting the hermes user passwordless sudo. Validated with visudo before applying.

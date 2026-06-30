@@ -1,8 +1,33 @@
-# Managed by Ansible — danmwallace.hermes.hermes_native
+# Managed by Ansible — danmwallace.hermes.hermes_native (native agent config, not the gateway)
 # Do not edit manually; changes will be overwritten on next run.
+model:
+  provider: {{ hermes_native_model_provider }}
+  model: {{ hermes_native_model }}
 approvals:
   mode: {{ hermes_native_approvals_mode }}
   cron_mode: {{ hermes_native_approvals_cron_mode }}
+{% if hermes_native_discord_bot_token | length > 0 %}
+gateway:
+  platforms:
+    discord:
+      token: {{ hermes_native_discord_bot_token }}
+      require_mention: {{ hermes_native_discord_require_mention | lower }}
+{% if hermes_native_discord_allowed_users | length > 0 or hermes_native_discord_admin_users | length > 0 %}
+      extra:
+{% if hermes_native_discord_allowed_users | length > 0 %}
+        allow_from:
+{% for uid in hermes_native_discord_allowed_users %}
+          - {{ uid }}
+{% endfor %}
+{% endif %}
+{% if hermes_native_discord_admin_users | length > 0 %}
+        allow_admin_from:
+{% for uid in hermes_native_discord_admin_users %}
+          - {{ uid }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endif %}
 platforms:
   api_server:
     enabled: true

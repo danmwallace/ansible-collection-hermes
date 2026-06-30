@@ -120,3 +120,11 @@ argument_specs:
         type: bool
         default: false
         description: When true, writes /etc/sudoers.d/hermes granting the hermes user passwordless sudo. Validated with visudo before applying.
+      hermes_native_sudo_commands:
+        type: list
+        default: []
+        description: >
+          List of absolute command paths allowed via passwordless sudo. When non-empty and
+          hermes_native_nopasswd_sudo is true, the sudoers entry restricts sudo to only these
+          commands instead of ALL. Example: ["/usr/bin/systemctl", "/usr/bin/podman"].
+          Requires hermes_native_nopasswd_sudo: true to have any effect.

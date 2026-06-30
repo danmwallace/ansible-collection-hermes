@@ -46,6 +46,8 @@ dashboard is reachable over HTTPS without further configuration.
 | `hermes_native_traefik_conf_dir` | str | no | `/opt/podman/traefik/conf.d` | Directory where Traefik file-provider route files are written. |
 | `hermes_native_dashboard_traefik_enabled` | bool | no | `false` | When true, write a Traefik route file for the dashboard. |
 | `hermes_native_dashboard_traefik_hostname` | str | no | `""` | FQDN Traefik routes to the dashboard (e.g. `hermes-dash.example.com`). Required when `hermes_native_dashboard_traefik_enabled: true`. |
+| `hermes_native_nopasswd_sudo` | bool | no | `false` | When true, writes `/etc/sudoers.d/hermes` granting the hermes user passwordless sudo. |
+| `hermes_native_sudo_commands` | list | no | `[]` | Restrict passwordless sudo to specific command paths. When non-empty (and `hermes_native_nopasswd_sudo: true`), only these commands are allowed instead of `ALL`. E.g. `["/usr/bin/systemctl", "/usr/bin/podman"]`. |
 
 ## Dependencies
 

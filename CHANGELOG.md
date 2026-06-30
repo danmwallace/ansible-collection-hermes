@@ -5,6 +5,27 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-06-30
+
+### Added
+
+- `hermes_native`: Discord gateway support — `DISCORD_BOT_TOKEN` and
+  `DISCORD_ALLOWED_USERS` written to the systemd env file when
+  `hermes_native_discord_bot_token` is set (direct env-var approach bypasses
+  a YAML-to-env translation bug in the gateway's `_apply_yaml_config` hook).
+- `hermes_native`: `gateway.platforms.discord` block written to `config.yaml`
+  with `token`, `require_mention`, and YAML-list `allow_from` / `allow_admin_from`.
+- `hermes_native`: `hermes_native_discord_bot_token`, `hermes_native_discord_allowed_users`,
+  `hermes_native_discord_admin_users`, and `hermes_native_discord_require_mention`
+  variables (default: `require_mention: true`).
+- `hermes_native`: `hermes_native_nopasswd_sudo` — writes `/etc/sudoers.d/hermes`
+  with `NOPASSWD: ALL` when `true`, removes the file when `false`. Validated via
+  `visudo -cf` before applying.
+- `hermes_native`: `hermes_native_model` (default: `claude-sonnet-4-6`) and
+  `hermes_native_model_provider` (default: `anthropic`) — written to `config.yaml`
+  as `model.model` / `model.provider`, preventing the gateway from falling back to
+  `claude-fable-5` which is unavailable on standard Anthropic API keys.
+
 ## [1.2.2] - 2026-06-21
 
 ### Added

@@ -54,3 +54,10 @@
     validate: "visudo -cf %s"
   become: true
   when: hermes_native_nopasswd_sudo | bool
+
+- name: Remove hermes user passwordless sudo when disabled
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/{{ hermes_native_user }}"
+    state: absent
+  become: true
+  when: not hermes_native_nopasswd_sudo | bool

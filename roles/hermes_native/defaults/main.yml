@@ -30,6 +30,10 @@ hermes_native_dashboard_port: 9119
 hermes_native_dashboard_username: hermes
 hermes_native_dashboard_password: ""  # supply from vault
 
+# Model configuration
+hermes_native_model_provider: anthropic
+hermes_native_model: claude-sonnet-4-6
+
 # Anthropic API key for the agent
 hermes_native_anthropic_api_key: ""   # supply from vault
 

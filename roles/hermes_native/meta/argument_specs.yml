@@ -65,6 +65,14 @@ argument_specs:
         default: ""
         no_log: true
         description: Basic auth password for the dashboard. Supply from vault.
+      hermes_native_model_provider:
+        type: str
+        default: anthropic
+        description: Model provider (anthropic, openai, openrouter, etc.).
+      hermes_native_model:
+        type: str
+        default: claude-sonnet-4-6
+        description: Model name passed to the provider.
       hermes_native_anthropic_api_key:
         type: str
         default: ""

@@ -1,5 +1,8 @@
 # Managed by Ansible — danmwallace.hermes.hermes_native
 # Do not edit manually; changes will be overwritten on next run.
+model:
+  provider: {{ hermes_native_model_provider }}
+  model: {{ hermes_native_model }}
 approvals:
   mode: {{ hermes_native_approvals_mode }}
   cron_mode: {{ hermes_native_approvals_cron_mode }}

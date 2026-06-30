@@ -52,6 +52,11 @@ hermes_native_discord_require_mention: true
 # Passwordless sudo for the hermes user (useful for coding-agent workflows)
 hermes_native_nopasswd_sudo: false
 
+# Restrict passwordless sudo to specific commands only (requires hermes_native_nopasswd_sudo: true).
+# When non-empty, the sudoers entry allows only these commands instead of ALL.
+# Example: ["/usr/bin/systemctl", "/usr/bin/podman", "/usr/bin/journalctl"]
+hermes_native_sudo_commands: []
+
 # Approvals policy — controls what hermes auto-approves in cron/gateway
 hermes_native_approvals_mode: "manual"
 hermes_native_approvals_cron_mode: deny

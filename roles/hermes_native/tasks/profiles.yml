@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Provision additional Hermes profiles
+  when: hermes_native_profiles | length > 0
+  block:
+    - name: Ensure profile directories exist
+      ansible.builtin.file:
+        path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}"
+        state: directory
+        owner: "{{ hermes_native_user }}"
+        group: "{{ hermes_native_user }}"
+        mode: "0750"
+      become: true
+      loop: "{{ hermes_native_profiles }}"
+      loop_control:
+        loop_var: _profile
+        label: "{{ _profile.name }}"
+
+    - name: Render profile config.yaml files
+      ansible.builtin.template:
+        src: profile_config.yaml.j2
+        dest: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
+        owner: "{{ hermes_native_user }}"
+        group: "{{ hermes_native_user }}"
+        mode: "0640"
+      become: true
+      loop: "{{ hermes_native_profiles }}"
+      loop_control:
+        loop_var: _profile
+        label: "{{ _profile.name }}"
+      notify: Restart hermes-agent service

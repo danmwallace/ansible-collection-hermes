@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Ensure Node.js and npm are installed
+  ansible.builtin.dnf:
+    name:
+      - nodejs
+      - npm
+    state: present
+  become: true
+
+- name: Install Claude Code globally via npm
+  community.general.npm:
+    name: "@anthropic-ai/claude-code"
+    global: true
+    state: "{{ 'latest' if claude_code_version == 'latest' else 'present' }}"
+    version: "{{ omit if claude_code_version == 'latest' else claude_code_version }}"
+  become: true

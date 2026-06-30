@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+---
+# OS user that will run Claude Code (should match hermes_native_user)
+claude_code_user: hermes
+
+# npm install target — 'global' installs to /usr/lib/node_modules (requires root)
+# 'user' installs to ~/.local (avoids root but requires PATH setup)
+claude_code_npm_scope: global
+
+# Pin to a specific version or 'latest'
+claude_code_version: latest
+
+# Directory for the user's Claude config
+claude_code_config_dir: "/home/{{ claude_code_user }}/.claude"
+
+# Global CLAUDE.md written to ~/.claude/CLAUDE.md
+# Set to empty string to skip writing the global CLAUDE.md
+claude_code_global_claude_md: ""
+
+# Global settings written to ~/.claude/settings.json
+# Merged with role defaults; set keys to override
+claude_code_settings: {}

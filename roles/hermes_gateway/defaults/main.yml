@@ -34,7 +34,7 @@ hermes_gateway_quadlet_dir: /etc/containers/systemd
 
 # Quadlet-specific: gateway container image (only used in quadlet mode)
 hermes_gateway_image: docker.io/nousresearch/hermes-agent # noqa: var-naming[no-role-prefix]
-hermes_gateway_image_tag: latest # noqa: var-naming[no-role-prefix]
+hermes_gateway_image_tag: v2026.7.1 # noqa: var-naming[no-role-prefix]
 hermes_gateway_port: 8642
 
 # API server platform (OpenAI-compatible HTTP endpoint)

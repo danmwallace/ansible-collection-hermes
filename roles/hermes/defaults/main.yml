@@ -3,7 +3,7 @@
 
 # Container image — pin hermes_image_tag to a specific release tag in production
 hermes_image: docker.io/nousresearch/hermes-agent
-hermes_image_tag: latest
+hermes_image_tag: v2026.7.1
 hermes_container_name: hermes
 
 # Filesystem layout

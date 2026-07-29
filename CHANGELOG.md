@@ -5,6 +5,24 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2026-07-29
+
+### Added
+
+- `hermes_gateway`: `hermes_gateway_discord_allowed_users`,
+  `hermes_gateway_discord_allowed_channels`, and `hermes_gateway_discord_admin_users`
+  variables — passed as `DISCORD_ALLOWED_USERS`, `DISCORD_ALLOWED_CHANNELS`, and
+  `DISCORD_ADMIN_USERS` env vars to the gateway container (same env-var-first approach
+  used by `hermes_native` since v1.2.3 to avoid config.yaml translation bugs).
+
+### Fixed
+
+- `hermes_gateway`: removed hardcoded `GATEWAY_ALLOW_ALL_USERS=true` from the Quadlet
+  container unit — replaced with scoped Discord env vars derived from `hermes_profiles`
+  gateway dict and the new `hermes_gateway_discord_*` variables.
+- `hermes_gateway`: `argument_specs.yml` `hermes_gateway_port` default corrected from
+  `3000` to `8642` to match `defaults/main.yml`.
+
 ## [1.2.6] - 2026-07-02
 
 ### Fixed

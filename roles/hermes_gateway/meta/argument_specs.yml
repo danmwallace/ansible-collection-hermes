@@ -80,7 +80,7 @@ argument_specs:
         description: Image tag for the hermes-gateway Quadlet unit (quadlet mode only).
       hermes_gateway_port:
         type: int
-        default: 3000
+        default: 8642
         description: Port the gateway container exposes (used for Traefik loadbalancer in quadlet mode).
       hermes_gateway_traefik_enabled:
         type: bool
@@ -90,3 +90,26 @@ argument_specs:
         type: str
         default: ""
         description: Traefik Host() rule hostname for the gateway (quadlet mode only).
+      hermes_gateway_discord_allowed_users:
+        type: str
+        default: ""
+        description: >-
+          Comma-separated Discord user IDs allowed to interact with the bot.
+          Passed as DISCORD_ALLOWED_USERS env var to the container. Takes
+          precedence over allowed_users in hermes_profiles gateway dict.
+          Leave empty to use hermes_profiles gateway dict values.
+      hermes_gateway_discord_allowed_channels:
+        type: str
+        default: ""
+        description: >-
+          Comma-separated Discord channel IDs the bot will respond in.
+          Passed as DISCORD_ALLOWED_CHANNELS env var to the container.
+          When empty, the bot responds in all accessible channels.
+      hermes_gateway_discord_admin_users:
+        type: str
+        default: ""
+        description: >-
+          Comma-separated Discord user IDs with admin access to the bot.
+          Passed as DISCORD_ADMIN_USERS env var to the container. Takes
+          precedence over admin_users in hermes_profiles gateway dict.
+          Leave empty to use hermes_profiles gateway dict values.

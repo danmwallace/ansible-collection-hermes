@@ -9,11 +9,34 @@ ContainerName=hermes-gateway
 Exec=gateway run --no-supervise
 Volume={{ hermes_data_dir }}/config.yaml:/opt/data/config.yaml:ro,z
 Volume={{ hermes_data_dir }}/profiles:/opt/data/profiles:ro,z
-Environment=GATEWAY_ALLOW_ALL_USERS=true
 Environment=ANTHROPIC_API_KEY={{ hermes_anthropic_api_key }}
 {% if hermes_gateway_api_server_enabled and hermes_api_server_key %}
 Environment=API_SERVER_KEY={{ hermes_api_server_key }}
 Environment=API_SERVER_HOST=0.0.0.0
+{% endif %}
+{% set _ns = namespace(discord_gw=None) %}
+{% for profile in hermes_profiles %}
+{% for gw in profile.gateways | default([]) %}
+{% if gw.type == 'discord' and _ns.discord_gw is none %}
+{% set _ns.discord_gw = gw %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% if _ns.discord_gw is not none %}
+Environment=DISCORD_BOT_TOKEN={{ _ns.discord_gw.bot_token }}
+{% if hermes_gateway_discord_allowed_users %}
+Environment=DISCORD_ALLOWED_USERS={{ hermes_gateway_discord_allowed_users }}
+{% elif _ns.discord_gw.allowed_users | default([]) | length > 0 %}
+Environment=DISCORD_ALLOWED_USERS={{ _ns.discord_gw.allowed_users | join(',') }}
+{% endif %}
+{% if hermes_gateway_discord_admin_users %}
+Environment=DISCORD_ADMIN_USERS={{ hermes_gateway_discord_admin_users }}
+{% elif _ns.discord_gw.admin_users | default([]) | length > 0 %}
+Environment=DISCORD_ADMIN_USERS={{ _ns.discord_gw.admin_users | join(',') }}
+{% endif %}
+{% if hermes_gateway_discord_allowed_channels %}
+Environment=DISCORD_ALLOWED_CHANNELS={{ hermes_gateway_discord_allowed_channels }}
+{% endif %}
 {% endif %}
 {% if hermes_gateway_traefik_enabled %}
 Network=proxy_network.network

@@ -46,3 +46,11 @@ hermes_anthropic_api_key: "" # noqa: var-naming[no-role-prefix]
 # Traefik integration (quadlet mode)
 hermes_gateway_traefik_enabled: true
 hermes_gateway_hostname: ""
+
+# Discord gateway scoping (quadlet mode) — passed as container env vars
+# Comma-separated Discord user IDs allowed to interact with the bot
+hermes_gateway_discord_allowed_users: "" # noqa: var-naming[no-role-prefix]
+# Comma-separated Discord channel IDs the bot will respond in (empty = all channels)
+hermes_gateway_discord_allowed_channels: "" # noqa: var-naming[no-role-prefix]
+# Comma-separated Discord user IDs with admin access
+hermes_gateway_discord_admin_users: "" # noqa: var-naming[no-role-prefix]

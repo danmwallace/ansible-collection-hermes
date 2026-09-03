@@ -27,6 +27,8 @@
 
 - name: Install hermes-agent dependencies via uv sync  # noqa: no-handler
   ansible.builtin.command:
+    # --locked omitted: lockfile at pinned tag diverges from pyproject.toml in the hermes-agent repo.
+    # The git tag pin (hermes_native_repo_version) still provides source reproducibility.
     cmd: "/home/{{ hermes_native_user }}/.local/bin/uv sync --extra all"
     chdir: "{{ hermes_native_install_dir }}"
   become: true

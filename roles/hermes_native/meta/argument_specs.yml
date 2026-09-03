@@ -66,10 +66,11 @@ argument_specs:
           only when direct host access is explicitly required.
       hermes_native_dashboard_insecure:
         type: bool
-        default: false
+        default: true
         description: >-
-          When true, passes --insecure to the dashboard process (plain HTTP). Leave
-          false when the dashboard is only accessed via Traefik HTTPS termination.
+          When true, passes --insecure to the dashboard process so it serves plain HTTP.
+          Keep true when Traefik handles TLS termination (the common case). Set false
+          only when the dashboard must serve HTTPS directly without a reverse proxy.
       hermes_native_dashboard_port:
         type: int
         default: 9119

@@ -62,6 +62,13 @@ argument_specs:
         description: Enable the Hermes web dashboard (HERMES_DASHBOARD=1).
         type: bool
         default: true
+      hermes_dashboard_host:
+        description: >-
+          IP address the dashboard binds to. Defaults to 127.0.0.1 so the dashboard
+          is only reachable via Traefik. Set to 0.0.0.0 only when direct host access
+          is required and the host has no external-facing interfaces.
+        type: str
+        default: "127.0.0.1"
       hermes_dashboard_port:
         description: Host port the dashboard binds to inside the container.
         type: int
@@ -79,6 +86,13 @@ argument_specs:
         description: Enable the OpenAI-compatible API server.
         type: bool
         default: true
+      hermes_api_server_host:
+        description: >-
+          IP address the API server binds to. Defaults to 127.0.0.1 so the endpoint
+          is only reachable via Traefik. Set to 0.0.0.0 only when direct host access
+          is explicitly required.
+        type: str
+        default: "127.0.0.1"
       hermes_api_server_port:
         description: Host port the API server binds to inside the container.
         type: int

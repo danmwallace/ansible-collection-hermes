@@ -6,6 +6,17 @@
       - hermes_profiles | length > 0
     fail_msg: "hermes_data_dir and hermes_profiles must both be set."
 
+- name: Assert API server key is set when API server is enabled
+  ansible.builtin.assert:
+    that: hermes_api_server_key | length > 0
+    fail_msg: "hermes_api_server_key must be set (supply from vault)"
+  when: hermes_gateway_api_server_enabled
+
+- name: Assert Anthropic API key is set
+  ansible.builtin.assert:
+    that: hermes_anthropic_api_key | length > 0
+    fail_msg: "hermes_anthropic_api_key must be set (supply from vault)"
+
 - name: Ensure per-profile data directories exist
   ansible.builtin.file:
     path: "{{ hermes_data_dir }}/profiles/{{ item.name }}"

@@ -8,7 +8,7 @@ claude_code_user: hermes
 claude_code_npm_scope: global
 
 # Pin to a specific version or 'latest'
-claude_code_version: latest
+claude_code_version: "2.1.259"
 
 # Directory for the user's Claude config
 claude_code_config_dir: "/home/{{ claude_code_user }}/.claude"

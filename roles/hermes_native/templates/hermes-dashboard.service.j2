@@ -11,10 +11,10 @@ Group={{ hermes_native_user }}
 WorkingDirectory=/home/{{ hermes_native_user }}
 EnvironmentFile={{ hermes_native_env_file }}
 ExecStart={{ hermes_native_install_dir }}/venv/bin/hermes dashboard \
-    --host {{ hermes_native_dashboard_host | default('0.0.0.0') }} \
+    --host {{ hermes_native_dashboard_host }} \
     --port {{ hermes_native_dashboard_port }} \
-    --no-open \
-    --insecure
+    --no-open{% if hermes_native_dashboard_insecure %} \
+    --insecure{% endif %}
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

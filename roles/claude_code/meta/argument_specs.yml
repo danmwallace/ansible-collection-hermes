@@ -23,10 +23,10 @@ argument_specs:
         description: npm install scope. 'global' installs to /usr/lib/node_modules (requires root).
       claude_code_version:
         type: str
-        default: latest
+        default: "2.1.259"
         description: >
-          npm package version to install. Use 'latest' to always install the newest
-          release, or pin to a specific version string (e.g. '1.0.3').
+          npm package version to install. Pin to a specific version string for
+          reproducible installs (e.g. '2.1.259'). Avoid 'latest' in production.
       claude_code_config_dir:
         type: str
         default: "/home/{{ claude_code_user }}/.claude"

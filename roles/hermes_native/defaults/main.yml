@@ -10,7 +10,7 @@ hermes_native_install_dir: /home/hermes/hermes-agent
 hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
 
 # Git branch/tag to check out
-hermes_native_repo_version: main
+hermes_native_repo_version: v2026.8.31
 
 # Directory for cloned repos the agent will work on
 hermes_native_workspace_dir: /home/hermes/workspace
@@ -20,15 +20,18 @@ hermes_native_git_user_name: "Hermes"
 hermes_native_git_user_email: "hermes@wallace.boston"
 
 # API server (exposes OpenAI-compatible endpoint for external callers)
+hermes_native_api_server_host: "127.0.0.1"
 hermes_native_api_server_port: 8642
 hermes_native_api_server_key: ""      # supply from vault
 hermes_native_api_server_model_name: hermes-agent
 
 # Dashboard (web UI served by the native agent process)
 hermes_native_dashboard_enabled: true
+hermes_native_dashboard_host: "127.0.0.1"
 hermes_native_dashboard_port: 9119
 hermes_native_dashboard_username: hermes
 hermes_native_dashboard_password: ""  # supply from vault
+hermes_native_dashboard_insecure: false
 
 # Model configuration
 hermes_native_model_provider: anthropic

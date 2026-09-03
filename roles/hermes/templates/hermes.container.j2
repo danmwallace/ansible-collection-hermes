@@ -16,14 +16,14 @@ Environment=PUID={{ hermes_uid }}
 Environment=PGID={{ hermes_gid }}
 {% if hermes_dashboard_enabled %}
 Environment=HERMES_DASHBOARD=1
-Environment=HERMES_DASHBOARD_HOST=0.0.0.0
+Environment=HERMES_DASHBOARD_HOST={{ hermes_dashboard_host }}
 Environment=HERMES_DASHBOARD_PORT={{ hermes_dashboard_port }}
 Environment=HERMES_DASHBOARD_BASIC_AUTH_USERNAME={{ hermes_dashboard_basic_auth_username }}
 Environment=HERMES_DASHBOARD_BASIC_AUTH_PASSWORD={{ hermes_dashboard_basic_auth_password }}
 {% endif %}
 {% if hermes_api_server_enabled %}
 Environment=API_SERVER_ENABLED=true
-Environment=API_SERVER_HOST=0.0.0.0
+Environment=API_SERVER_HOST={{ hermes_api_server_host }}
 Environment=API_SERVER_PORT={{ hermes_api_server_port }}
 Environment=API_SERVER_KEY={{ hermes_api_server_key }}
 Environment=API_SERVER_MODEL_NAME={{ hermes_api_server_model_name }}

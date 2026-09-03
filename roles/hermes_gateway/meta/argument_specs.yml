@@ -113,3 +113,23 @@ argument_specs:
           Passed as DISCORD_ADMIN_USERS env var to the container. Takes
           precedence over admin_users in hermes_profiles gateway dict.
           Leave empty to use hermes_profiles gateway dict values.
+      hermes_gateway_api_server_enabled:
+        type: bool
+        default: true
+        description: When true, enables the OpenAI-compatible API server in the Quadlet unit.
+      hermes_gateway_api_server_host:
+        type: str
+        default: "127.0.0.1"
+        description: >-
+          IP address the API server binds to. Defaults to 127.0.0.1 so it is only
+          reachable via Traefik. Set to 0.0.0.0 only when direct host access is required.
+      hermes_api_server_key:
+        type: str
+        no_log: true
+        default: ""
+        description: API authentication key for the OpenAI-compatible endpoint. Supply from vault.
+      hermes_anthropic_api_key:
+        type: str
+        no_log: true
+        default: ""
+        description: Anthropic API key passed as ANTHROPIC_API_KEY to the gateway container. Supply from vault.

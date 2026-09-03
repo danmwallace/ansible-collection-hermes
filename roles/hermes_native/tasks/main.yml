@@ -9,6 +9,12 @@
       hermes_native_anthropic_api_key and hermes_native_api_server_key (min 8 chars)
       must both be set. Supply from vault.
 
+- name: Assert dashboard password is set when dashboard is enabled
+  ansible.builtin.assert:
+    that: hermes_native_dashboard_password | length > 0
+    fail_msg: "hermes_native_dashboard_password must be set when hermes_native_dashboard_enabled is true (supply from vault)"
+  when: hermes_native_dashboard_enabled
+
 - name: Create hermes user and workspace
   ansible.builtin.import_tasks: user.yml
 

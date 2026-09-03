@@ -12,7 +12,7 @@ Volume={{ hermes_data_dir }}/profiles:/opt/data/profiles:ro,z
 Environment=ANTHROPIC_API_KEY={{ hermes_anthropic_api_key }}
 {% if hermes_gateway_api_server_enabled and hermes_api_server_key %}
 Environment=API_SERVER_KEY={{ hermes_api_server_key }}
-Environment=API_SERVER_HOST=0.0.0.0
+Environment=API_SERVER_HOST={{ hermes_gateway_api_server_host }}
 {% endif %}
 {% set _ns = namespace(discord_gw=None) %}
 {% for profile in hermes_profiles %}

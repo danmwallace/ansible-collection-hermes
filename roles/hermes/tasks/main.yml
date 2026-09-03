@@ -11,6 +11,11 @@
     fail_msg: "hermes_api_server_key must be set (minimum 8 characters, supply from vault)"
   when: hermes_api_server_enabled
 
+- name: Assert Anthropic API key is set
+  ansible.builtin.assert:
+    that: hermes_anthropic_api_key | length > 0
+    fail_msg: "hermes_anthropic_api_key must be set (supply from vault)"
+
 - name: Ensure hermes deploy directory exists
   ansible.builtin.file:
     path: "{{ hermes_deploy_dir }}"

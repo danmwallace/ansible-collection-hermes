@@ -39,6 +39,7 @@ hermes_gateway_port: 8642
 
 # API server platform (OpenAI-compatible HTTP endpoint)
 hermes_gateway_api_server_enabled: true
+hermes_gateway_api_server_host: "127.0.0.1"
 # These must be supplied from vault; defaults are empty so role is importable without secrets
 hermes_api_server_key: "" # noqa: var-naming[no-role-prefix]
 hermes_anthropic_api_key: "" # noqa: var-naming[no-role-prefix]

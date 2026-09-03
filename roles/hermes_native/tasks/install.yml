@@ -27,7 +27,7 @@
 
 - name: Install hermes-agent dependencies via uv sync  # noqa: no-handler
   ansible.builtin.command:
-    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv sync --extra all --locked"
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv sync --extra all"
     chdir: "{{ hermes_native_install_dir }}"
   become: true
   become_user: "{{ hermes_native_user }}"

@@ -5,6 +5,20 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-09-12
+
+### Fixed
+
+- `hermes`, `hermes_gateway`: bind the dashboard and API server to `0.0.0.0` inside the
+  container again. 1.3.0 changed these defaults (`hermes_dashboard_host`,
+  `hermes_api_server_host`, `hermes_gateway_api_server_host`) to `127.0.0.1`, which is
+  the container's own loopback: Traefik, a separate container on the Podman network,
+  got connection refused and served 502. Running containers kept their old settings
+  until their next restart, so the break surfaced later (ai-master gateway on
+  2026-09-04, ai01 dashboard and API on 2026-09-12). No host ports are published, and
+  upstream requires auth on any non-loopback bind. `hermes_native` keeps its
+  `127.0.0.1` defaults, which are correct for a process on the host.
+
 ## [1.2.7] - 2026-07-29
 
 ### Added

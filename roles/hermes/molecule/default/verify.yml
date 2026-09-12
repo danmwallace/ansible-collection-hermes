@@ -5,10 +5,12 @@
   tasks:
     - name: Stat the deploy and data directories
       ansible.builtin.stat:
-        path: "{{ item }}"
+        path: "{{ item.path }}"
       loop:
-        - /opt/hermes
-        - /opt/hermes/data
+        - path: /opt/hermes
+          mode: "0755"
+        - path: /opt/hermes/data
+          mode: "0750"
       register: hermes_dirs
 
     - name: Assert directories exist with correct mode
@@ -16,10 +18,10 @@
         that:
           - item.stat.exists
           - item.stat.isdir
-          - item.stat.mode == '0755'
+          - item.stat.mode == item.item.mode
       loop: "{{ hermes_dirs.results }}"
       loop_control:
-        label: "{{ item.item }}"
+        label: "{{ item.item.path }}"
 
     - name: Stat the rendered docker-compose file
       ansible.builtin.stat:
@@ -42,7 +44,10 @@
         rendered: "{{ hermes_compose_contents.content | b64decode }}"
       ansible.builtin.assert:
         that:
-          - "'nousresearch/hermes-agent:latest' in rendered"
+          - "'nousresearch/hermes-agent:' in rendered"
+          - "'HERMES_DASHBOARD_HOST=0.0.0.0' in rendered"
+          - "'API_SERVER_HOST=0.0.0.0' in rendered"
+          - "'127.0.0.1' not in rendered"
           - "'HERMES_DASHBOARD=1' in rendered"
           - "'HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=test-password-not-for-production' in rendered"
           - "'API_SERVER_ENABLED=true' in rendered"

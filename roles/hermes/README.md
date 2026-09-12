@@ -28,10 +28,12 @@ The dashboard is accessible at `hermes-<inventory_hostname>.<hermes_domain>` and
 | `hermes_browser_tools_enabled` | bool | no | `false` | When true, sets `shm_size` on the container for Playwright/Chromium support. |
 | `hermes_shm_size` | str | no | `1g` | Shared memory size when `hermes_browser_tools_enabled` is true. |
 | `hermes_dashboard_enabled` | bool | no | `true` | Enable the Hermes web dashboard (`HERMES_DASHBOARD=1`). |
+| `hermes_dashboard_host` | str | no | `0.0.0.0` | Address the dashboard binds to inside the container. Must not be `127.0.0.1`; see **Notes**. |
 | `hermes_dashboard_port` | int | no | `9119` | Container port the dashboard binds to. |
 | `hermes_dashboard_basic_auth_username` | str | no | `hermes` | Username for dashboard basic auth. |
 | `hermes_dashboard_basic_auth_password` | str | yes* | `""` | Password for dashboard basic auth. Required when `hermes_dashboard_enabled`. **Supply from vault.** |
 | `hermes_api_server_enabled` | bool | no | `true` | Enable the OpenAI-compatible API server. |
+| `hermes_api_server_host` | str | no | `0.0.0.0` | Address the API server binds to inside the container. Must not be `127.0.0.1`; see **Notes**. |
 | `hermes_api_server_port` | int | no | `8642` | Container port the API server binds to. |
 | `hermes_api_server_key` | str | yes* | `""` | API authentication key (minimum 8 characters). Required when `hermes_api_server_enabled`. **Supply from vault.** |
 | `hermes_api_server_cors_origins` | str | no | `""` | Comma-separated CORS allowed origins. Empty disables CORS. |
@@ -78,6 +80,7 @@ A `Restart hermes compose project` handler fires when either rendered file chang
 
 - The `hermes_gateway` role in this same collection configures agent profiles, Discord gateways, and per-profile `SOUL.md` identity files. Apply it after this role on the same host. Both roles share `hermes_container_name` and `hermes_data_dir` — keep the values consistent.
 - No host ports are published. Traffic reaches the dashboard and API server exclusively through Traefik. If you set `hermes_traefik_enabled: false`, you are responsible for exposing the ports.
+- **Bind addresses are inside the container.** `hermes_dashboard_host` and `hermes_api_server_host` default to `0.0.0.0`. Setting them to `127.0.0.1` binds the container's own loopback, which Traefik (a separate container) cannot reach, so both endpoints return 502. Because no host ports are published, `0.0.0.0` is reachable only over the Podman network, and upstream requires auth on any non-loopback bind. A running container keeps its old values until it restarts, so a wrong value can stay hidden for weeks.
 - `hermes_image_tag` defaults to `latest`. Pin it to a digest or version tag before running in production to get reproducible deploys.
 
 ## License

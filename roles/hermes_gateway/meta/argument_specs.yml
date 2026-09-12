@@ -119,10 +119,11 @@ argument_specs:
         description: When true, enables the OpenAI-compatible API server in the Quadlet unit.
       hermes_gateway_api_server_host:
         type: str
-        default: "127.0.0.1"
+        default: "0.0.0.0"
         description: >-
-          IP address the API server binds to. Defaults to 127.0.0.1 so it is only
-          reachable via Traefik. Set to 0.0.0.0 only when direct host access is required.
+          Address the API server binds to inside the container. Defaults to 0.0.0.0 so
+          Traefik can reach it over the Podman network; 127.0.0.1 is private to the
+          container and makes the endpoint unreachable (502). No host ports are published.
       hermes_api_server_key:
         type: str
         no_log: true

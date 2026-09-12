@@ -64,11 +64,12 @@ argument_specs:
         default: true
       hermes_dashboard_host:
         description: >-
-          IP address the dashboard binds to. Defaults to 127.0.0.1 so the dashboard
-          is only reachable via Traefik. Set to 0.0.0.0 only when direct host access
-          is required and the host has no external-facing interfaces.
+          Address the dashboard binds to inside the container. Defaults to 0.0.0.0 so
+          Traefik can reach it over the Podman network; 127.0.0.1 is private to the
+          container and makes the dashboard unreachable (502). No host ports are
+          published, and upstream requires basic auth on any non-loopback bind.
         type: str
-        default: "127.0.0.1"
+        default: "0.0.0.0"
       hermes_dashboard_port:
         description: Host port the dashboard binds to inside the container.
         type: int
@@ -88,11 +89,11 @@ argument_specs:
         default: true
       hermes_api_server_host:
         description: >-
-          IP address the API server binds to. Defaults to 127.0.0.1 so the endpoint
-          is only reachable via Traefik. Set to 0.0.0.0 only when direct host access
-          is explicitly required.
+          Address the API server binds to inside the container. Defaults to 0.0.0.0 so
+          Traefik can reach it over the Podman network; 127.0.0.1 is private to the
+          container and makes the endpoint unreachable (502). No host ports are published.
         type: str
-        default: "127.0.0.1"
+        default: "0.0.0.0"
       hermes_api_server_port:
         description: Host port the API server binds to inside the container.
         type: int

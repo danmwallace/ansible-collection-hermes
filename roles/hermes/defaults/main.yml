@@ -24,15 +24,19 @@ hermes_browser_tools_enabled: false
 hermes_shm_size: "1g"
 
 # Web dashboard
+# Bind addresses are inside the container, not on the host. Loopback here is private
+# to the container, so Traefik (a separate container on the Podman network) could not
+# reach it and returned 502. No host ports are published, so 0.0.0.0 is reachable only
+# over the container network; upstream also requires auth on any non-loopback bind.
 hermes_dashboard_enabled: true
-hermes_dashboard_host: "127.0.0.1"
+hermes_dashboard_host: "0.0.0.0"
 hermes_dashboard_port: 9119
 hermes_dashboard_basic_auth_username: hermes
 hermes_dashboard_basic_auth_password: ""
 
 # OpenAI-compatible API server
 hermes_api_server_enabled: true
-hermes_api_server_host: "127.0.0.1"
+hermes_api_server_host: "0.0.0.0"
 hermes_api_server_port: 8642
 hermes_api_server_key: ""
 hermes_api_server_model_name: hermes-agent

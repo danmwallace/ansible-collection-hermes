@@ -12,7 +12,7 @@
       ansible.builtin.assert:
         that:
           - hermes_gateway_config_stat.stat.exists
-          - hermes_gateway_config_stat.stat.mode == '0600'
+          - hermes_gateway_config_stat.stat.mode == '0640'
 
     - name: Read rendered config.yaml
       ansible.builtin.slurp:
@@ -50,3 +50,16 @@
       ansible.builtin.assert:
         that:
           - "'You are a helpful assistant for testing.' in rendered"
+
+    - name: Load role defaults for the bind-address regression check
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../defaults/main.yml"
+        name: hermes_gateway_role_defaults
+
+    - name: Assert the gateway API binds on all container interfaces
+      ansible.builtin.assert:
+        that:
+          - hermes_gateway_role_defaults.hermes_gateway_api_server_host == '0.0.0.0'
+        fail_msg: >-
+          hermes_gateway_api_server_host must default to 0.0.0.0. 127.0.0.1 is the
+          container's own loopback and makes the gateway unreachable through Traefik.

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 namespace: danmwallace
 name: hermes
-version: 1.3.2
+version: 1.3.3
 readme: README.md
 authors:
   - Dan Wallace <dan.m.wallace@gmail.com>
@@ -22,4 +22,10 @@ repository: https://github.com/danmwallace/ansible-collection-hermes
 documentation: https://github.com/danmwallace/ansible-collection-hermes
 homepage: https://github.com/danmwallace/ansible-collection-hermes
 issues: https://github.com/danmwallace/ansible-collection-hermes/issues
-build_ignore: []
+build_ignore:
+  - .ansible
+  - .claude
+  - .superpowers
+  - .venv
+  - dist
+  - "*.tar.gz"

@@ -5,6 +5,17 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-09-12
+
+### Fixed
+
+- Removed two internal session-note files under `.superpowers/` that were committed by
+  mistake with 1.3.2. They held no credentials. The directory is now in `.gitignore`.
+- `build_ignore` excludes local-only paths (`.ansible`, `.claude`, `.superpowers`, `.venv`,
+  `dist`, `*.tar.gz`), so a manual build from a working checkout cannot ship them.
+- 1.3.2 was tagged but never published to Galaxy: its release run failed on a stale
+  `GALAXY_API_KEY`. 1.3.3 carries the same bind-address fix without the stray files.
+
 ## [1.3.2] - 2026-09-12
 
 ### Fixed

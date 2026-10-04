@@ -5,6 +5,14 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-10-04
+
+### Fixed
+
+- `hermes_native`: the SELinux labelling now follows `hermes_native_install_dir`
+  instead of a hardcoded `~/hermes-agent`, so an overridden install directory
+  no longer reintroduces the `203/EXEC` failure.
+
 ## [1.4.2] - 2026-10-04
 
 ### Fixed

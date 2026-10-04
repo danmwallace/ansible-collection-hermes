@@ -33,6 +33,9 @@
 - name: Install hermes-agent from source
   ansible.builtin.import_tasks: install.yml
 
+- name: Label the agent executables for systemd under SELinux
+  ansible.builtin.import_tasks: selinux.yml
+
 - name: Configure systemd service
   ansible.builtin.import_tasks: service.yml
 

@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: MIT
+---
+# systemd runs the services as init_t; files under a home directory are
+# user_home_t / data_home_t, which init_t may not execute under SELinux
+# enforcing. Label the venv entry points and uv's Python as bin_t, persistently
+# (fcontext) and now (restorecon). The home path is resolved first because on
+# bootc hosts /home is a symlink to /var/home and fcontext rules match the
+# real path.
+- name: Resolve the real path of the hermes home directory
+  ansible.builtin.command: readlink -f "/home/{{ hermes_native_user }}"
+  register: hermes_native_home_real
+  changed_when: false
+
+- name: Ensure SELinux file contexts mark the agent executables as bin_t
+  community.general.sefcontext:
+    target: "{{ item }}"
+    setype: bin_t
+    state: present
+  loop:
+    - "{{ hermes_native_home_real.stdout }}/hermes-agent/venv/bin(/.*)?"
+    - "{{ hermes_native_home_real.stdout }}/.local/share/uv/python(/.*)?/bin(/.*)?"
+  become: true
+  when: ansible_facts.selinux.status | default('disabled') == 'enabled'
+
+- name: Ensure the agent executables carry their SELinux labels
+  ansible.builtin.command:
+    cmd: >-
+      restorecon -Rv
+      {{ hermes_native_home_real.stdout }}/hermes-agent/venv/bin
+      {{ hermes_native_home_real.stdout }}/.local/share/uv/python
+  register: hermes_native_restorecon
+  changed_when: hermes_native_restorecon.stdout | length > 0
+  become: true
+  when: ansible_facts.selinux.status | default('disabled') == 'enabled'
+  notify: Restart hermes-agent service

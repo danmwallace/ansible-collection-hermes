@@ -5,6 +5,18 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-10-04
+
+### Fixed
+
+- `hermes_native`: the agent and dashboard units failed with `203/EXEC` under
+  SELinux enforcing because systemd (`init_t`) may not execute `user_home_t`
+  files. The role now sets `bin_t` file contexts for the venv entry points and
+  uv's Python (resolving `/home` to its real path for bootc hosts) and runs
+  `restorecon`. Previously only hosts labelled by hand worked.
+- `hermes_native`: `uv sync --frozen` so the lockfile is never rewritten; the
+  clone (`force: true`) and the sync no longer report changed on every run.
+
 ## [1.4.0] - 2026-10-04
 
 ### Added

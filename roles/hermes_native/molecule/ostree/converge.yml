@@ -1,0 +1,26 @@
+---
+- name: Converge the ostree guard
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Ensure python3 exists for Ansible modules
+      ansible.builtin.raw: dnf -y install python3
+      changed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Pretend to be a bootc host
+      ansible.builtin.file:
+        path: /run/ostree-booted
+        state: touch
+        mode: "0644"
+
+    - name: Run the guarded package tasks of hermes_native
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.hermes_native
+        tasks_from: "{{ item }}"
+      loop:
+        - ostree.yml
+        - packages.yml
+        - gh.yml

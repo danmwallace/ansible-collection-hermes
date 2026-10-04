@@ -1,0 +1,11 @@
+---
+- name: Create molecule instance
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Start hermes-ostree container
+      containers.podman.podman_container:
+        name: hermes-ostree
+        image: registry.fedoraproject.org/fedora:44
+        state: started
+        command: sleep infinity

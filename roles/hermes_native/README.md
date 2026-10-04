@@ -16,6 +16,9 @@ dashboard is reachable over HTTPS without further configuration.
 
 - Ansible >= 2.16
 - Fedora Server (the role installs Fedora-specific packages via `dnf`)
+- On bootc/rpm-ostree hosts (`/run/ostree-booted` present) the role skips its dnf and
+  yum-repo tasks; the image must already provide git, make, jq, yq, ripgrep, python3,
+  python3-pip, curl, nodejs, npm and gh.
 - `become: true` on the play — most tasks require root to write system files
 - A running Traefik instance with a `cloudflare` cert resolver and the `conf.d/` directory
   provider configured (e.g. from `danmwallace.podman.traefik`) when

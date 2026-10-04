@@ -1,0 +1,21 @@
+---
+- name: Verify the guard skipped every dnf and repo task
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Gather installed packages
+      ansible.builtin.package_facts:
+        manager: rpm
+
+    - name: Stat the gh repo file
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/gh-cli.repo
+      register: hermes_native_gh_repo
+
+    - name: Assert nothing was installed or dropped into /etc/yum.repos.d
+      ansible.builtin.assert:
+        that:
+          - "'make' not in ansible_facts.packages"
+          - "'ripgrep' not in ansible_facts.packages"
+          - "'gh' not in ansible_facts.packages"
+          - not hermes_native_gh_repo.stat.exists

@@ -5,6 +5,15 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-04
+
+### Added
+
+- `hermes_native` and `claude_code` skip their dnf and yum-repo tasks on
+  bootc/rpm-ostree hosts (`/run/ostree-booted`), where `/usr` is read-only and
+  the image carries the packages. New molecule scenario `ostree` for
+  `hermes_native` proves nothing is installed in that mode.
+
 ## [1.3.3] - 2026-09-12
 
 ### Fixed

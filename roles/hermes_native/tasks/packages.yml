@@ -15,3 +15,4 @@
       - npm
     state: present
   become: true
+  when: not hermes_native_ostree_booted.stat.exists

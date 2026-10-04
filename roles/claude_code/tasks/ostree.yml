@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Detect an ostree (bootc) host
+  ansible.builtin.stat:
+    path: /run/ostree-booted
+  register: claude_code_ostree_booted

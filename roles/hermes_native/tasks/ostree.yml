@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+---
+# bootc / rpm-ostree hosts have a read-only /usr: the image must already carry
+# every package this role would dnf-install. Detect once; dnf tasks check it.
+- name: Detect an ostree (bootc) host
+  ansible.builtin.stat:
+    path: /run/ostree-booted
+  register: hermes_native_ostree_booted

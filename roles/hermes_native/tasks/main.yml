@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: MIT
 ---
+- name: Detect ostree hosts
+  ansible.builtin.import_tasks: ostree.yml
+
 - name: Assert required secrets are provided
   ansible.builtin.assert:
     that:

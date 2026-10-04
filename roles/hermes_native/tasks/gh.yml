@@ -6,9 +6,11 @@
     dest: /etc/yum.repos.d/gh-cli.repo
     mode: "0644"
   become: true
+  when: not hermes_native_ostree_booted.stat.exists
 
 - name: Install gh CLI
   ansible.builtin.dnf:
     name: gh
     state: present
   become: true
+  when: not hermes_native_ostree_booted.stat.exists

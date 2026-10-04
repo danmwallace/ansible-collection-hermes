@@ -29,7 +29,9 @@
       {{ hermes_native_home_real.stdout }}/hermes-agent/venv/bin
       {{ hermes_native_home_real.stdout }}/.local/share/uv/python
   register: hermes_native_restorecon
-  changed_when: hermes_native_restorecon.stdout | length > 0
+  # -v also prints "not reset as customized by admin" for files it leaves alone;
+  # only an actual relabel is a change.
+  changed_when: "'Relabeled' in hermes_native_restorecon.stdout"
   become: true
   when: ansible_facts.selinux.status | default('disabled') == 'enabled'
   notify: Restart hermes-agent service

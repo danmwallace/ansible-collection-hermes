@@ -6,10 +6,15 @@
 # (fcontext) and now (restorecon). The home path is resolved first because on
 # bootc hosts /home is a symlink to /var/home and fcontext rules match the
 # real path.
-- name: Resolve the real path of the hermes home directory
-  ansible.builtin.command: readlink -f "/home/{{ hermes_native_user }}"
-  register: hermes_native_home_real
+- name: Resolve the real paths of the hermes home and install directories
+  ansible.builtin.command: readlink -f "/home/{{ hermes_native_user }}" "{{ hermes_native_install_dir }}"
+  register: hermes_native_real_paths
   changed_when: false
+
+- name: Keep the resolved paths in named facts
+  ansible.builtin.set_fact:
+    hermes_native_home_real: "{{ hermes_native_real_paths.stdout_lines[0] }}"
+    hermes_native_install_dir_real: "{{ hermes_native_real_paths.stdout_lines[1] }}"
 
 - name: Ensure SELinux file contexts mark the agent executables as bin_t
   community.general.sefcontext:
@@ -17,8 +22,8 @@
     setype: bin_t
     state: present
   loop:
-    - "{{ hermes_native_home_real.stdout }}/hermes-agent/venv/bin(/.*)?"
-    - "{{ hermes_native_home_real.stdout }}/.local/share/uv/python(/.*)?/bin(/.*)?"
+    - "{{ hermes_native_install_dir_real }}/venv/bin(/.*)?"
+    - "{{ hermes_native_home_real }}/.local/share/uv/python(/.*)?/bin(/.*)?"
   become: true
   when: ansible_facts.selinux.status | default('disabled') == 'enabled'
 
@@ -26,8 +31,8 @@
   ansible.builtin.command:
     cmd: >-
       restorecon -Rv
-      {{ hermes_native_home_real.stdout }}/hermes-agent/venv/bin
-      {{ hermes_native_home_real.stdout }}/.local/share/uv/python
+      {{ hermes_native_install_dir_real }}/venv/bin
+      {{ hermes_native_home_real }}/.local/share/uv/python
   register: hermes_native_restorecon
   # -v also prints "not reset as customized by admin" for files it leaves alone;
   # only an actual relabel is a change.

@@ -54,6 +54,9 @@
           - "'API_SERVER_KEY=test-api-key-min8chars' in rendered"
           - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"
           - "'hermes-hermes-instance.test.local' in rendered"
+          - "'DISCORD_BOT_TOKEN=test-discord-token' in rendered"
+          - "'DISCORD_ALLOWED_USERS=111111111111111111,222222222222222222' in rendered"
+          - "'DISCORD_ALLOWED_CHANNELS=333333333333333333' in rendered"
 
     - name: Stat the .env file
       ansible.builtin.stat:

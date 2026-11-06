@@ -16,6 +16,14 @@
     that: hermes_anthropic_api_key | length > 0
     fail_msg: "hermes_anthropic_api_key must be set (supply from vault)"
 
+- name: Assert Discord allowed users are set when a Discord bot token is set
+  ansible.builtin.assert:
+    that: hermes_discord_allowed_users | length > 0
+    fail_msg: >-
+      hermes_discord_allowed_users must list at least one Discord user ID when
+      hermes_discord_bot_token is set; without it the bot has no allowlist.
+  when: hermes_discord_bot_token | length > 0
+
 - name: Ensure hermes deploy directory exists
   ansible.builtin.file:
     path: "{{ hermes_deploy_dir }}"

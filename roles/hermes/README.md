@@ -42,6 +42,9 @@ The dashboard is accessible at `hermes-<inventory_hostname>.<hermes_domain>` and
 | `hermes_domain` | str | yes* | `""` | Base domain for Traefik host rules (e.g. `lab.example.com`). Required when `hermes_traefik_enabled`. |
 | `hermes_anthropic_api_key` | str | no | `""` | Anthropic API key passed as `ANTHROPIC_API_KEY` to the container. **Supply from vault.** |
 | `hermes_openai_api_key` | str | no | `""` | OpenAI API key passed as `OPENAI_API_KEY` to the container. **Supply from vault.** |
+| `hermes_discord_bot_token` | str | no | `""` | Discord bot token passed as `DISCORD_BOT_TOKEN`; makes this container the bot's gateway connection. Empty disables Discord here. See **Notes**. **Supply from vault.** |
+| `hermes_discord_allowed_users` | list | yes* | `[]` | Discord user IDs allowed to talk to the bot. Required when `hermes_discord_bot_token` is set. |
+| `hermes_discord_allowed_channels` | list | no | `[]` | Discord channel IDs the bot responds in. Empty means every channel the bot can see. |
 | `hermes_pull_policy` | str | no | `missing` | Image pull policy for `docker_compose_v2` (`always`, `missing`, `never`, `build`). |
 | `hermes_skip_compose` | bool | no | `false` | Skip the `docker_compose_v2` deploy task and its handler. Set `true` in Molecule/CI environments without Docker access. |
 
@@ -69,16 +72,18 @@ None declared in `meta/main.yml`. In practice the target host needs Docker insta
 
 1. Asserts `hermes_dashboard_basic_auth_password` is non-empty when `hermes_dashboard_enabled` (prevents a locked-out dashboard on first deploy).
 2. Asserts `hermes_api_server_key` is non-empty when `hermes_api_server_enabled`.
-3. Ensures `/opt/hermes` and `/opt/hermes/data` exist (`ansible:docker`, 0755).
-4. Renders `data/.env` from `env.j2` (`ansible:docker`, 0600, `no_log`).
-5. Renders `docker-compose.yml` from `docker-compose.yml.j2` (`ansible:docker`, 0600, `no_log`).
-6. Brings the stack up via `community.docker.docker_compose_v2` (skipped when `hermes_skip_compose: true`).
+3. Asserts `hermes_discord_allowed_users` is non-empty when `hermes_discord_bot_token` is set.
+4. Ensures `/opt/hermes` and `/opt/hermes/data` exist (`ansible:docker`, 0755).
+5. Renders `data/.env` from `env.j2` (`ansible:docker`, 0600, `no_log`).
+6. Renders `docker-compose.yml` from `docker-compose.yml.j2` (`ansible:docker`, 0600, `no_log`).
+7. Brings the stack up via `community.docker.docker_compose_v2` (skipped when `hermes_skip_compose: true`).
 
 A `Restart hermes compose project` handler fires when either rendered file changes, so config edits take effect without manual intervention. The handler is also skipped when `hermes_skip_compose: true`.
 
 ## Notes
 
 - The `hermes_gateway` role in this same collection configures agent profiles, Discord gateways, and per-profile `SOUL.md` identity files. Apply it after this role on the same host. Both roles share `hermes_container_name` and `hermes_data_dir` — keep the values consistent.
+- **One process per Discord bot token.** Discord delivers every message to every connection that logs in with a token, so two processes holding the same token both answer. Set the token in exactly one place per bot: `hermes_discord_bot_token` here, a `gateways` entry in `hermes_gateway`'s `hermes_profiles`, or `hermes_native_discord_bot_token`. Prefer this role when the container also owns scheduled jobs: cron delivery to Discord is blocked ("no gateway credentials configured") unless the process that runs the job holds the token, and this container is the one with persistent state under `hermes_data_dir`.
 - No host ports are published. Traffic reaches the dashboard and API server exclusively through Traefik. If you set `hermes_traefik_enabled: false`, you are responsible for exposing the ports.
 - **Bind addresses are inside the container.** `hermes_dashboard_host` and `hermes_api_server_host` default to `0.0.0.0`. Setting them to `127.0.0.1` binds the container's own loopback, which Traefik (a separate container) cannot reach, so both endpoints return 502. Because no host ports are published, `0.0.0.0` is reachable only over the Podman network, and upstream requires auth on any non-loopback bind. A running container keeps its old values until it restarts, so a wrong value can stay hidden for weeks.
 - `hermes_image_tag` defaults to `latest`. Pin it to a digest or version tag before running in production to get reproducible deploys.

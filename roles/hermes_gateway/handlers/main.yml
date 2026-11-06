@@ -10,16 +10,36 @@
   tags:
     - molecule-notest
 
+- name: Restart hermes Quadlet container
+  ansible.builtin.systemd:
+    name: "{{ hermes_container_name }}.service"
+    state: restarted
+  become: true
+  when: hermes_gateway_deploy_mode == 'quadlet'
+  tags:
+    - molecule-notest
+  register: _hermes_gateway_hermes_restart
+  failed_when:
+    - _hermes_gateway_hermes_restart is failed
+    - "'Could not find the requested service' not in (_hermes_gateway_hermes_restart.msg | default(''))"
+
 - name: Restart hermes-gateway service
   ansible.builtin.systemd:
     name: hermes-gateway.service
     state: restarted
     daemon_reload: true
   become: true
-  when: hermes_gateway_deploy_mode == 'quadlet'
+  when: hermes_gateway_deploy_mode == 'quadlet' and hermes_gateway_container_state == 'present'
   tags:
     - molecule-notest
   register: _hermes_gateway_quadlet_restart
   failed_when:
     - _hermes_gateway_quadlet_restart is failed
     - "'Could not find the requested service' not in (_hermes_gateway_quadlet_restart.msg | default(''))"
+
+- name: Reload systemd after removing the hermes-gateway Quadlet unit
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true
+  tags:
+    - molecule-notest

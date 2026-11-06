@@ -8,9 +8,13 @@ gateway on port 8642 (`hermes-agent.service`) with an optional web UI on port 91
 also configured so the agent can clone, commit, and open pull requests as part of its coding
 workflows.
 
-When `hermes_native_dashboard_traefik_enabled: true`, the role drops a Traefik file-provider
-route into `hermes_native_traefik_conf_dir` (default `/opt/podman/traefik/conf.d`) so the
-dashboard is reachable over HTTPS without further configuration.
+When `hermes_native_dashboard_traefik_enabled: true` or `hermes_native_api_server_traefik_enabled: true`,
+the role drops a Traefik file-provider route into `hermes_native_traefik_conf_dir` (default
+`/opt/podman/traefik/conf.d`) so the dashboard and/or the OpenAI-compatible API server are
+reachable over HTTPS without further configuration. Traefik reaches the host process through
+`host.containers.internal`, so the corresponding `hermes_native_dashboard_host` or
+`hermes_native_api_server_host` must not be `127.0.0.1` (use `0.0.0.0`; Traefik is the TLS and
+auth boundary, and the API server requires its key on any non-loopback bind).
 
 ## Requirements
 
@@ -22,7 +26,7 @@ dashboard is reachable over HTTPS without further configuration.
 - `become: true` on the play — most tasks require root to write system files
 - A running Traefik instance with a `cloudflare` cert resolver and the `conf.d/` directory
   provider configured (e.g. from `danmwallace.podman.traefik`) when
-  `hermes_native_dashboard_traefik_enabled: true`
+  `hermes_native_dashboard_traefik_enabled: true` or `hermes_native_api_server_traefik_enabled: true`
 
 ## Role Variables
 
@@ -49,6 +53,8 @@ dashboard is reachable over HTTPS without further configuration.
 | `hermes_native_traefik_conf_dir` | str | no | `/opt/podman/traefik/conf.d` | Directory where Traefik file-provider route files are written. |
 | `hermes_native_dashboard_traefik_enabled` | bool | no | `false` | When true, write a Traefik route file for the dashboard. |
 | `hermes_native_dashboard_traefik_hostname` | str | no | `""` | FQDN Traefik routes to the dashboard (e.g. `hermes-dash.example.com`). Required when `hermes_native_dashboard_traefik_enabled: true`. |
+| `hermes_native_api_server_traefik_enabled` | bool | no | `false` | When true, write a Traefik route file for the API server. Fails if `hermes_native_api_server_host` is `127.0.0.1`. |
+| `hermes_native_api_server_traefik_hostname` | str | no | `""` | FQDN Traefik routes to the API server (e.g. `hermes-api.example.com`). Required when `hermes_native_api_server_traefik_enabled: true`. |
 | `hermes_native_nopasswd_sudo` | bool | no | `false` | When true, writes `/etc/sudoers.d/hermes` granting the hermes user passwordless sudo. |
 | `hermes_native_sudo_commands` | list | no | `[]` | Restrict passwordless sudo to specific command paths. When non-empty (and `hermes_native_nopasswd_sudo: true`), only these commands are allowed instead of `ALL`. E.g. `["/usr/bin/systemctl", "/usr/bin/podman"]`. |
 

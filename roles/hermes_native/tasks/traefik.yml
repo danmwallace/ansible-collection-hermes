@@ -14,3 +14,29 @@
     state: absent
   become: true
   when: not hermes_native_dashboard_traefik_enabled or hermes_native_dashboard_traefik_hostname | length == 0
+
+- name: Assert the API server is reachable from the Traefik container
+  ansible.builtin.assert:
+    that:
+      - hermes_native_api_server_host != "127.0.0.1"
+      - hermes_native_api_server_host != "localhost"
+    fail_msg: >-
+      hermes_native_api_server_traefik_enabled requires hermes_native_api_server_host to be
+      reachable via host.containers.internal (e.g. "0.0.0.0"); it is
+      "{{ hermes_native_api_server_host }}".
+  when: hermes_native_api_server_traefik_enabled
+
+- name: Deploy Traefik route for Hermes native API server
+  ansible.builtin.template:
+    src: hermes-api.traefik.yml.j2
+    dest: "{{ hermes_native_traefik_conf_dir }}/hermes-api.yml"
+    mode: "0600"
+  become: true
+  when: hermes_native_api_server_traefik_enabled and hermes_native_api_server_traefik_hostname | length > 0
+
+- name: Remove Traefik route for Hermes native API server
+  ansible.builtin.file:
+    path: "{{ hermes_native_traefik_conf_dir }}/hermes-api.yml"
+    state: absent
+  become: true
+  when: not hermes_native_api_server_traefik_enabled or hermes_native_api_server_traefik_hostname | length == 0

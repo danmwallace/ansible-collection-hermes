@@ -22,6 +22,8 @@ This role is re-runnable independently of the `hermes` role — it can be applie
 | `hermes_gateway_create_profiles` | bool | no | `true` | When true, runs `hermes profile create <name>` via docker exec for each profile. Set `false` before the container is running (e.g. first converge or Molecule). |
 | `hermes_gateway_skip_docker` | bool | no | `false` | Skip the `docker_container` restart handler. Set `true` in Molecule/CI environments without Docker access. |
 | `hermes_config_extra` | dict | no | `{}` | Dict merged verbatim into the top level of `config.yaml`. Use this for schema fields not explicitly modelled by the template. |
+| `hermes_gateway_deploy_mode` | str | no | `docker` | `docker` (Compose, gateway runs inside the `hermes` container) or `quadlet` (separate `hermes-gateway` Podman container managed by systemd). |
+| `hermes_gateway_container_state` | str | no | `present` | Quadlet mode only. `absent` stops and removes the `hermes-gateway` container and its unit, while `config.yaml`, profiles and `SOUL.md` are still rendered for the `hermes` role's container. Use it to retire the gateway container once another process owns Discord and the API. |
 
 ## Dependencies
 
@@ -56,7 +58,9 @@ None declared in `meta/main.yml`. Practically this role is a companion to `danmw
 4. Renders `{{ hermes_data_dir }}/config.yaml` from `config.yaml.j2` (`ansible:docker`, 0600, `no_log`).
 5. Renders `{{ hermes_data_dir }}/profiles/<name>/SOUL.md` for each profile where `soul` is defined (`ansible:docker`, 0644).
 
-A `Restart hermes container` handler fires when `config.yaml` or any `SOUL.md` changes, issuing a `docker restart` on `hermes_container_name` so the agent picks up the new config without a full compose redeploy. The handler is skipped when `hermes_gateway_skip_docker: true`.
+A `Restart hermes container` handler fires when `config.yaml` or any `SOUL.md` changes, issuing a `docker restart` on `hermes_container_name` so the agent picks up the new config without a full compose redeploy. The handler is skipped when `hermes_gateway_skip_docker: true`. In quadlet mode the equivalent `Restart hermes Quadlet container` handler restarts `<hermes_container_name>.service` (tolerating hosts where that unit does not exist), and `Restart hermes-gateway service` restarts the gateway unit while `hermes_gateway_container_state` is `present`.
+
+With `hermes_gateway_container_state: absent` (quadlet mode) steps 1–5 still run, and the role then stops `hermes-gateway.service`, removes the Quadlet unit, reloads systemd and removes any leftover `hermes-gateway` container. Nothing under `hermes_data_dir` is deleted.
 
 ## Notes
 

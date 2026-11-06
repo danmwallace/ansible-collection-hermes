@@ -64,10 +64,14 @@ hermes_native_sudo_commands: []
 hermes_native_approvals_mode: "manual"
 hermes_native_approvals_cron_mode: deny
 
-# Traefik integration — expose the dashboard via HTTPS
+# Traefik integration — expose the dashboard and/or the API server via HTTPS.
+# Traefik runs in a container and reaches these host processes through
+# host.containers.internal, so the matching *_host must not be 127.0.0.1.
 hermes_native_traefik_conf_dir: /opt/podman/traefik/conf.d
 hermes_native_dashboard_traefik_enabled: false
 hermes_native_dashboard_traefik_hostname: ""
+hermes_native_api_server_traefik_enabled: false
+hermes_native_api_server_traefik_hostname: ""
 
 # Additional profiles to provision alongside the default.
 # Each entry is a dict with:

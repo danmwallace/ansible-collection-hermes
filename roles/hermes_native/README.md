@@ -35,7 +35,7 @@ dashboard is reachable over HTTPS without further configuration.
 | `hermes_native_user` | str | no | `hermes` | OS user the agent runs as. |
 | `hermes_native_install_dir` | str | no | `/home/hermes/hermes-agent` | Directory where the source is cloned and the venv is created. |
 | `hermes_native_repo_url` | str | no | `https://github.com/NousResearch/hermes-agent` | Git URL for the hermes-agent source repo. |
-| `hermes_native_repo_version` | str | no | `main` | Branch or tag to check out. |
+| `hermes_native_repo_version` | str | no | `v0.23.0` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
 | `hermes_native_workspace_dir` | str | no | `/home/hermes/workspace` | Pre-created directory for repos the agent will work on. |
 | `hermes_native_git_user_name` | str | no | `Hermes` | `git config user.name` for the hermes user. |
 | `hermes_native_git_user_email` | str | no | `hermes@wallace.boston` | `git config user.email` for the hermes user. |

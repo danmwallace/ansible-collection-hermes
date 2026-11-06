@@ -17,7 +17,7 @@ The dashboard is accessible at `hermes-<inventory_hostname>.<hermes_domain>` and
 | Variable | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `hermes_image` | str | no | `nousresearch/hermes-agent` | Hermes Agent Docker image name. |
-| `hermes_image_tag` | str | no | `latest` | Image tag. Pin to a specific release tag in production. |
+| `hermes_image_tag` | str | no | `v0.23.0` | Image tag, pinned to an upstream release. Set it in inventory to stay on a version across collection upgrades. |
 | `hermes_container_name` | str | no | `hermes` | Name of the running container. Must match `hermes_gateway` role if both are applied to the same host. |
 | `hermes_deploy_dir` | str | no | `/opt/hermes` | Host directory for `docker-compose.yml`. |
 | `hermes_data_dir` | str | no | `/opt/hermes/data` | Host path mounted as `/opt/data` inside the container (persistent agent storage). |
@@ -86,7 +86,7 @@ A `Restart hermes compose project` handler fires when either rendered file chang
 - **One process per Discord bot token.** Discord delivers every message to every connection that logs in with a token, so two processes holding the same token both answer. Set the token in exactly one place per bot: `hermes_discord_bot_token` here, a `gateways` entry in `hermes_gateway`'s `hermes_profiles`, or `hermes_native_discord_bot_token`. Prefer this role when the container also owns scheduled jobs: cron delivery to Discord is blocked ("no gateway credentials configured") unless the process that runs the job holds the token, and this container is the one with persistent state under `hermes_data_dir`.
 - No host ports are published. Traffic reaches the dashboard and API server exclusively through Traefik. If you set `hermes_traefik_enabled: false`, you are responsible for exposing the ports.
 - **Bind addresses are inside the container.** `hermes_dashboard_host` and `hermes_api_server_host` default to `0.0.0.0`. Setting them to `127.0.0.1` binds the container's own loopback, which Traefik (a separate container) cannot reach, so both endpoints return 502. Because no host ports are published, `0.0.0.0` is reachable only over the Podman network, and upstream requires auth on any non-loopback bind. A running container keeps its old values until it restarts, so a wrong value can stay hidden for weeks.
-- `hermes_image_tag` defaults to `latest`. Pin it to a digest or version tag before running in production to get reproducible deploys.
+- `hermes_image_tag` defaults to a pinned upstream release (`v0.23.0`), and the default moves when the collection is updated. Set it in inventory if a collection upgrade must not also upgrade the container.
 
 ## License
 

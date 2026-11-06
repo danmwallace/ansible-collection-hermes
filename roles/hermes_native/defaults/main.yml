@@ -10,7 +10,7 @@ hermes_native_install_dir: /home/hermes/hermes-agent
 hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
 
 # Git branch/tag to check out
-hermes_native_repo_version: v2026.8.31
+hermes_native_repo_version: v0.23.0
 
 # Directory for cloned repos the agent will work on
 hermes_native_workspace_dir: /home/hermes/workspace

@@ -25,7 +25,7 @@ argument_specs:
         description: Git URL for the hermes-agent source repo.
       hermes_native_repo_version:
         type: str
-        default: v2026.8.31
+        default: v0.23.0
         description: Git tag or branch to check out. Pin to a release tag for reproducibility.
       hermes_native_workspace_dir:
         type: str

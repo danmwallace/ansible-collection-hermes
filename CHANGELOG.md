@@ -5,6 +5,24 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-06
+
+### Changed
+
+- Default Hermes versions moved to upstream `v0.23.0`: `hermes_image_tag` and
+  `hermes_gateway_image_tag` (were `v2026.7.1`) and
+  `hermes_native_repo_version` (was `v2026.8.31`). Upstream switched from
+  date-based to semver tags after `v2026.9.24`; the old tags still exist.
+  **Upgrade note:** a host that does not set these variables will pull the new
+  image, or check out and rebuild the native agent, on its next run. Set them
+  in inventory first to stay on the current version.
+
+### Fixed
+
+- `argument_specs` and READMEs stated `latest` (and `main`) as the defaults
+  for the three version variables while `defaults/main.yml` pinned a release;
+  all three now agree.
+
 ## [1.5.0] - 2026-11-06
 
 ### Added

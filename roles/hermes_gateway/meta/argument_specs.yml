@@ -76,7 +76,7 @@ argument_specs:
         description: Container image for the hermes-gateway Quadlet unit (quadlet mode only).
       hermes_gateway_image_tag:
         type: str
-        default: latest
+        default: v0.23.0
         description: Image tag for the hermes-gateway Quadlet unit (quadlet mode only).
       hermes_gateway_port:
         type: int

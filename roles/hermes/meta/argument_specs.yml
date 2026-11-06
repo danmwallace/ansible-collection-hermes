@@ -15,9 +15,9 @@ argument_specs:
         type: str
         default: nousresearch/hermes-agent
       hermes_image_tag:
-        description: Hermes Agent image tag.
+        description: Hermes Agent image tag. Pinned to an upstream release; override to stay on another one.
         type: str
-        default: latest
+        default: v0.23.0
       hermes_container_name:
         description: Name of the running Hermes container. Must match hermes_gateway role if both are applied.
         type: str

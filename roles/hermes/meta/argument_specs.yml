@@ -129,6 +129,29 @@ argument_specs:
         type: str
         no_log: true
         default: ""
+      hermes_discord_bot_token:
+        description: >-
+          Discord bot token passed as DISCORD_BOT_TOKEN to the container, which makes
+          this container the bot's gateway connection. Exactly one process may hold a
+          given token; do not also give it to hermes_gateway or hermes_native.
+          Empty disables Discord in this container. Supply from vault.
+        type: str
+        no_log: true
+        default: ""
+      hermes_discord_allowed_users:
+        description: >-
+          Discord user IDs allowed to talk to the bot (DISCORD_ALLOWED_USERS).
+          Required when hermes_discord_bot_token is set.
+        type: list
+        elements: str
+        default: []
+      hermes_discord_allowed_channels:
+        description: >-
+          Discord channel IDs the bot responds in (DISCORD_ALLOWED_CHANNELS).
+          Empty means every channel the bot can see.
+        type: list
+        elements: str
+        default: []
       hermes_pull_policy:
         description: >-
           Image pull policy passed to docker_compose_v2.

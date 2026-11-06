@@ -5,6 +5,25 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-06
+
+### Added
+
+- `hermes`: optional Discord ownership for the main container via
+  `hermes_discord_bot_token`, `hermes_discord_allowed_users` and
+  `hermes_discord_allowed_channels` (rendered as `DISCORD_*` environment
+  variables in both the Quadlet unit and the compose file). The role asserts
+  an allowlist whenever a token is set. Use this instead of a `hermes_gateway`
+  Discord gateway when the main container owns scheduled jobs: since
+  v2026.9.x a cron job that delivers to Discord is blocked ("no gateway
+  credentials configured") unless the process running it holds the token.
+
+### Changed
+
+- READMEs: document that a Discord bot token must be given to exactly one
+  process. Two processes with the same token both receive and answer every
+  message.
+
 ## [1.4.3] - 2026-10-04
 
 ### Fixed

@@ -105,6 +105,9 @@ env file, config.yaml, or the respective systemd unit changes.
 
 ## Notes
 
+- **One process per Discord bot token**: when `hermes_native_discord_bot_token` is set, the
+  native agent is the bot's gateway connection. Do not give the same token to `hermes_gateway`
+  or the `hermes` role as well; every process holding it receives and answers every message.
 - **Two services, one agent**: `hermes-agent.service` runs `hermes gateway run` (the
   OpenAI-compatible API server). `hermes-dashboard.service` runs `hermes dashboard --insecure`
   (the web UI). They are separate processes — unlike the Docker image which uses s6-rc to

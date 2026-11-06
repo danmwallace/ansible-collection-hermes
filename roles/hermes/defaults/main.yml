@@ -51,6 +51,16 @@ hermes_domain: ""
 hermes_anthropic_api_key: ""
 hermes_openai_api_key: ""
 
+# Discord — set the bot token to make THIS container the bot's gateway connection.
+# A bot token must be held by exactly one process: if hermes_gateway or
+# hermes_native is given the same token, each process receives and answers every
+# message. Leave empty when another role owns Discord for this bot.
+hermes_discord_bot_token: ""
+# Discord user IDs allowed to talk to the bot. Required when the token is set.
+hermes_discord_allowed_users: []
+# Discord channel IDs the bot responds in (empty = every channel it can see)
+hermes_discord_allowed_channels: []
+
 # Google OAuth for MCP servers (Gmail, Google Calendar)
 hermes_google_client_id: ""
 hermes_google_client_secret: ""

@@ -33,6 +33,13 @@ services:
 {% if hermes_openai_api_key %}
       - OPENAI_API_KEY={{ hermes_openai_api_key }}
 {% endif %}
+{% if hermes_discord_bot_token %}
+      - DISCORD_BOT_TOKEN={{ hermes_discord_bot_token }}
+      - DISCORD_ALLOWED_USERS={{ hermes_discord_allowed_users | join(',') }}
+{% if hermes_discord_allowed_channels %}
+      - DISCORD_ALLOWED_CHANNELS={{ hermes_discord_allowed_channels | join(',') }}
+{% endif %}
+{% endif %}
     deploy:
       resources:
         limits:

@@ -61,6 +61,7 @@ A `Restart hermes container` handler fires when `config.yaml` or any `SOUL.md` c
 ## Notes
 
 - **Discord gateway**: the template extracts the first Discord gateway it finds across all profiles and writes it as the single top-level `gateway:` block in `config.yaml`. Hermes Agent supports only one active gateway at a time; multi-gateway support is not currently modelled.
+- **One process per Discord bot token**: the gateway container logs in to Discord with the token from `hermes_profiles`. Do not also give that token to the `hermes` role (`hermes_discord_bot_token`) or to `hermes_native` (`hermes_native_discord_bot_token`) for the same bot, on this host or any other; every process holding the token receives and answers every message. Omit `gateways` from the profile when another role owns Discord. Note that this container mounts only `config.yaml` and `profiles/` from `hermes_data_dir`, so its sessions, memory and cron state do not persist across restarts.
 - **`hermes_container_name` and `hermes_data_dir`** share the `hermes_` prefix (not `hermes_gateway_`) intentionally — they are the shared contract between this role and the `hermes` role. Keep them in sync.
 - **Profile `soul`** values are written verbatim into `SOUL.md`. Multi-line YAML block scalars work well here.
 - **`hermes_gateway_api_server_host`** defaults to `0.0.0.0` and binds inside the container. `127.0.0.1` would be the container's own loopback, unreachable by Traefik, so the gateway API would return 502. No host ports are published.

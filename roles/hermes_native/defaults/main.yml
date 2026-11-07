@@ -12,6 +12,13 @@ hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
 # Git branch/tag to check out
 hermes_native_repo_version: v0.23.0
 
+# Python the venv is built with (major.minor, as `uv venv --python` takes it).
+# Upstream supports one Python per release and locks uv.lock for it only
+# (3.14 since v0.23.0, see the comment above requires-python in its
+# pyproject.toml). A venv built with another version is removed and rebuilt,
+# and the dependencies are synced again.
+hermes_native_python_version: "3.14"
+
 # Directory for cloned repos the agent will work on
 hermes_native_workspace_dir: /home/hermes/workspace
 

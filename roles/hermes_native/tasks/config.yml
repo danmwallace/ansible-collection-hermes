@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: MIT
+---
+# Hermes rewrites config.yaml itself: `_config_version` after a migration, the
+# `/sethome` channel under gateway.platforms.discord, onboarding flags,
+# model.options and approvals.unattended_mode from the dashboard. Rendering the
+# file from a template threw all of that away on every run, so the Ansible-owned
+# keys are merged into the live mapping instead and the file is written only
+# when the merged mapping differs from what is on disk. Hermes reformatting the
+# file (ruamel keeps comments but not our layout) is therefore not a change.
+- name: Check whether a hermes-agent config.yaml exists
+  ansible.builtin.stat:
+    path: "/home/{{ hermes_native_user }}/config.yaml"
+  become: true
+  register: _hermes_native_config_stat
+
+- name: Read the live hermes-agent config.yaml
+  ansible.builtin.slurp:
+    src: "/home/{{ hermes_native_user }}/config.yaml"
+  become: true
+  register: _hermes_native_config_slurp
+  when: _hermes_native_config_stat.stat.exists
+  no_log: true
+
+# model is combined non-recursively first to drop the legacy `model.model` key
+# that releases up to 1.7.0 wrote: Hermes reads `model.model` in preference to
+# the canonical `model.default`, so leaving it behind would pin the old model.
+- name: Merge the Ansible-owned keys into the live config
+  ansible.builtin.set_fact:
+    _hermes_native_config_current: "{{ _hermes_native_cfg_live }}"
+    _hermes_native_config_merged: >-
+      {{ _hermes_native_cfg_live
+         | combine({'model': _hermes_native_cfg_live.model | default({}, true)
+                             | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
+         | combine(_hermes_native_cfg_managed, recursive=true)
+         | combine(_hermes_native_cfg_discord, recursive=true)
+         | combine(hermes_native_config_extra, recursive=true) }}
+  vars:
+    _hermes_native_cfg_live: >-
+      {{ (_hermes_native_config_slurp.content | b64decode | from_yaml | default({}, true))
+         if _hermes_native_config_stat.stat.exists else {} }}
+    _hermes_native_cfg_managed:
+      model:
+        provider: "{{ hermes_native_model_provider }}"
+        default: "{{ hermes_native_model }}"
+      approvals:
+        mode: "{{ hermes_native_approvals_mode }}"
+        cron_mode: "{{ hermes_native_approvals_cron_mode }}"
+      platforms:
+        api_server:
+          enabled: true
+    _hermes_native_cfg_discord: >-
+      {{ {'gateway': {'platforms': {'discord': {
+            'token': hermes_native_discord_bot_token,
+            'require_mention': hermes_native_discord_require_mention | bool,
+            'extra': {'allow_from': hermes_native_discord_allowed_users,
+                      'allow_admin_from': hermes_native_discord_admin_users}}}}}
+         if hermes_native_discord_bot_token | length > 0 else {} }}
+  no_log: true
+
+- name: Report which top-level config keys the merge changes
+  ansible.builtin.debug:
+    msg: >-
+      config.yaml keys to update:
+      {%- set _ns = namespace(keys=[]) -%}
+      {%- for _k, _v in _hermes_native_config_merged.items() if _hermes_native_config_current.get(_k) != _v -%}
+      {%- set _ns.keys = _ns.keys + [_k] -%}
+      {%- endfor %} {{ _ns.keys | join(', ') }}
+  when: _hermes_native_config_merged != _hermes_native_config_current
+
+# no_log only when a Discord token is in the file; otherwise --diff shows the change.
+- name: Write hermes-agent config.yaml when the merge changes it
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible — danmwallace.hermes.hermes_native (native agent config, not the gateway)
+      # Ansible owns model, approvals, platforms.api_server, gateway.platforms.discord and the
+      # keys in hermes_native_config_extra; everything else Hermes writes here is kept.
+      {{ _hermes_native_config_merged | to_nice_yaml(indent=2) }}
+    dest: "/home/{{ hermes_native_user }}/config.yaml"
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0640"
+  become: true
+  when: _hermes_native_config_merged != _hermes_native_config_current
+  no_log: "{{ hermes_native_discord_bot_token | length > 0 }}"
+  notify: Restart hermes-agent service

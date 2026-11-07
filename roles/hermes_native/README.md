@@ -50,6 +50,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_dashboard_port` | int | no | `9119` | Port the web dashboard listens on. |
 | `hermes_native_dashboard_username` | str | no | `hermes` | Basic auth username for the dashboard. |
 | `hermes_native_approvals_cron_mode` | str | no | `deny` | Value written to `config.yaml` as `approvals.cron_mode` (`deny`, `allow`, or `auto`). |
+| `hermes_native_config_extra` | dict | no | `{}` | Extra `config.yaml` keys merged on top of the role-managed ones (e.g. a `moa` preset, `max_concurrent_sessions`). Removing a key here does not remove it from the host. |
 | `hermes_native_traefik_conf_dir` | str | no | `/opt/podman/traefik/conf.d` | Directory where Traefik file-provider route files are written. |
 | `hermes_native_dashboard_traefik_enabled` | bool | no | `false` | When true, write a Traefik route file for the dashboard. |
 | `hermes_native_dashboard_traefik_hostname` | str | no | `""` | FQDN Traefik routes to the dashboard (e.g. `hermes-dash.example.com`). Required when `hermes_native_dashboard_traefik_enabled: true`. |
@@ -95,8 +96,8 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
    `package-lock.json` modifications from the dashboard npm build), creates a Python 3.11 venv
    via `uv venv`, and runs `uv sync --extra all --locked` on version changes.
 7. **Configure systemd services**: renders `/etc/hermes-agent/env` (EnvironmentFile with all
-   API keys and server config), renders `~/config.yaml` (approvals policy and API server
-   platform config), writes `hermes-agent.service` (`hermes gateway run`), and — when
+   API keys and server config), merges the Ansible-owned keys into `~/config.yaml` (see
+   Notes), writes `hermes-agent.service` (`hermes gateway run`), and — when
    `hermes_native_dashboard_enabled: true` — writes `hermes-dashboard.service` (`hermes
    dashboard --insecure`). Both units are enabled and started.
 8. **Register with Traefik**: when `hermes_native_dashboard_traefik_enabled: true`, writes
@@ -118,9 +119,16 @@ env file, config.yaml, or the respective systemd unit changes.
   OpenAI-compatible API server). `hermes-dashboard.service` runs `hermes dashboard --insecure`
   (the web UI). They are separate processes — unlike the Docker image which uses s6-rc to
   supervise both under a single container entrypoint.
-- **config.yaml ownership**: the role writes `~/config.yaml` via template, so manual edits
-  (e.g. enabling channels via the dashboard UI) will be overwritten on the next play run.
-  Add any persistent config to `hermes_native_approvals_cron_mode` or the role defaults.
+- **config.yaml ownership**: since 1.8.0 the role merges into `~/config.yaml` (and each
+  `~/profiles/<name>/config.yaml`) instead of replacing it. Ansible owns `model`, `approvals`,
+  `platforms.api_server`, `gateway.platforms.discord` and whatever is in
+  `hermes_native_config_extra`; keys Hermes writes itself (`_config_version` after a
+  migration, the `/sethome` channel, `model.options`, onboarding flags) survive a play run,
+  and the file is only rewritten when the merged mapping differs from the live one. Two
+  consequences: a value changed from the dashboard that Ansible also declares is reverted on
+  the next run, and a key removed from Ansible stays on the host until removed by hand. The
+  legacy `model.model` key written by releases up to 1.7.0 is dropped on the first run
+  because Hermes reads it in preference to `model.default`.
 - **Platform-specific**: the role targets Fedora only. `dnf` tasks will fail on Debian/Ubuntu
   hosts.
 

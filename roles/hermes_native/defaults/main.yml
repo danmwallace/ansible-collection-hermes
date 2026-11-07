@@ -61,8 +61,16 @@ hermes_native_nopasswd_sudo: false
 hermes_native_sudo_commands: []
 
 # Approvals policy — controls what hermes auto-approves in cron/gateway
+# (manual, smart or off; quoted so YAML does not read off as false)
 hermes_native_approvals_mode: "manual"
 hermes_native_approvals_cron_mode: deny
+
+# Extra config.yaml keys merged on top of the role-managed ones (model,
+# approvals, platforms.api_server, gateway.platforms.discord), e.g. a moa
+# preset or max_concurrent_sessions. The role merges into the live file, so
+# keys Hermes writes itself (_config_version, /sethome channel, model.options)
+# survive; removing a key here does not remove it from the host.
+hermes_native_config_extra: {}
 
 # Traefik integration — expose the dashboard and/or the API server via HTTPS.
 # Traefik runs in a container and reaches these host processes through

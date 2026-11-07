@@ -13,9 +13,42 @@
   register: hermes_native_git_clone
   notify: Restart hermes-agent service
 
-- name: Create hermes-agent venv (Python 3.11)
+# uv.lock only supports the Python upstream built the release for, so a venv
+# left over from an older Python makes `uv sync --frozen` refuse to run. The
+# interpreter version is read from the venv's own pyvenv.cfg (uv writes
+# `version_info = 3.11.15`, the stdlib writes `version = ...`) and the venv is
+# rebuilt when its major.minor differs from hermes_native_python_version.
+- name: Check whether the hermes-agent venv exists
+  ansible.builtin.stat:
+    path: "{{ hermes_native_install_dir }}/venv/pyvenv.cfg"
+  become: true
+  register: _hermes_native_venv_cfg_stat
+
+- name: Read the Python version of the existing venv
+  ansible.builtin.slurp:
+    src: "{{ hermes_native_install_dir }}/venv/pyvenv.cfg"
+  become: true
+  register: _hermes_native_venv_cfg
+  when: _hermes_native_venv_cfg_stat.stat.exists
+
+- name: Remove the hermes-agent venv when it was built with another Python
+  ansible.builtin.file:
+    path: "{{ hermes_native_install_dir }}/venv"
+    state: absent
+  become: true
+  vars:
+    _hermes_native_venv_python: >-
+      {{ _hermes_native_venv_cfg.content | b64decode
+         | regex_search('(?m)^version(_info)?\s*=\s*(\d+\.\d+)', '\2')
+         | default([''], true) | first }}
+  when:
+    - _hermes_native_venv_cfg_stat.stat.exists
+    - _hermes_native_venv_python != hermes_native_python_version | string
+  register: _hermes_native_venv_removed
+
+- name: Create hermes-agent venv
   ansible.builtin.command:
-    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv venv venv --python 3.11"
+    cmd: "/home/{{ hermes_native_user }}/.local/bin/uv venv venv --python {{ hermes_native_python_version }}"
     chdir: "{{ hermes_native_install_dir }}"
   become: true
   become_user: "{{ hermes_native_user }}"
@@ -24,6 +57,7 @@
     UV_NO_CONFIG: "1"
   args:
     creates: "{{ hermes_native_install_dir }}/venv/bin/activate"
+  register: _hermes_native_venv_created
 
 - name: Install hermes-agent dependencies via uv sync  # noqa: no-handler
   ansible.builtin.command:
@@ -38,6 +72,9 @@
     HOME: "/home/{{ hermes_native_user }}"
     UV_PROJECT_ENVIRONMENT: "{{ hermes_native_install_dir }}/venv"
     UV_NO_CONFIG: "1"
-  when: hermes_native_git_clone is changed
-  changed_when: hermes_native_git_clone is changed
+  when: >-
+    hermes_native_git_clone is changed
+    or _hermes_native_venv_removed is changed
+    or _hermes_native_venv_created is changed
+  changed_when: true
   notify: Restart hermes-agent service

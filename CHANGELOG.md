@@ -5,6 +5,23 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-11-07
+
+### Added
+
+- `hermes_native`: `hermes_native_python_version` (default `"3.14"`), the Python the
+  venv is built with.
+
+### Fixed
+
+- `hermes_native`: the venv was pinned to Python 3.11 and never revisited, so
+  upgrading to v0.23.0 (whose `uv.lock` only supports Python 3.14) failed in
+  `uv sync --frozen` with "The current Python platform is not compatible with the
+  lockfile's supported environments". The role now reads the venv's `pyvenv.cfg`,
+  removes and recreates the venv when its Python differs from
+  `hermes_native_python_version`, and runs `uv sync` whenever the venv was
+  (re)created, not only when the source changed.
+
 ## [1.8.0] - 2026-11-07
 
 ### Added

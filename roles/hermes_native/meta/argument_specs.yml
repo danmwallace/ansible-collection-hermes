@@ -27,6 +27,12 @@ argument_specs:
         type: str
         default: v0.23.0
         description: Git tag or branch to check out. Pin to a release tag for reproducibility.
+      hermes_native_python_version:
+        type: str
+        default: "3.14"
+        description: >-
+          Python (major.minor) the venv is built with. Upstream supports one Python per
+          release; a venv built with another version is rebuilt and re-synced.
       hermes_native_workspace_dir:
         type: str
         default: /home/hermes/workspace

@@ -5,6 +5,30 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-11-06
+
+### Added
+
+- `hermes_native`: `hermes_native_api_server_traefik_enabled` and
+  `hermes_native_api_server_traefik_hostname` write a Traefik file-provider
+  route (`conf.d/hermes-api.yml`) for the native agent's OpenAI-compatible API
+  server, the same way the dashboard route works. The role asserts that
+  `hermes_native_api_server_host` is not loopback, since Traefik reaches the
+  host process through `host.containers.internal`.
+- `hermes_gateway`: `hermes_gateway_container_state` (`present`/`absent`,
+  quadlet mode only). `absent` stops and removes the `hermes-gateway`
+  container and its Quadlet unit while still rendering `config.yaml`,
+  profiles and `SOUL.md` for the `hermes` role's container, so a host can
+  retire the gateway container once another process owns Discord and the
+  API.
+
+### Changed
+
+- `hermes_gateway`: in quadlet mode a change to `config.yaml` or any
+  `SOUL.md` now also restarts `<hermes_container_name>.service`, so the
+  `hermes` role's container picks up the new config. Hosts without that unit
+  are tolerated.
+
 ## [1.6.0] - 2026-11-06
 
 ### Changed

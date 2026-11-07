@@ -31,6 +31,10 @@ hermes_config_extra: {} # noqa: var-naming[no-role-prefix]
 # Deployment mode: 'docker' (compose) or 'quadlet' (Podman systemd unit)
 hermes_gateway_deploy_mode: docker
 hermes_gateway_quadlet_dir: /etc/containers/systemd
+# Quadlet mode only: 'present' deploys and runs the hermes-gateway container;
+# 'absent' stops and removes it while still rendering config.yaml, profiles and
+# SOUL.md for the hermes role's container, which reads the same data directory.
+hermes_gateway_container_state: present
 
 # Quadlet-specific: gateway container image (only used in quadlet mode)
 hermes_gateway_image: docker.io/nousresearch/hermes-agent # noqa: var-naming[no-role-prefix]

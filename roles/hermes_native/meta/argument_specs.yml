@@ -118,6 +118,17 @@ argument_specs:
         type: str
         default: ""
         description: FQDN Traefik should route to the dashboard (e.g. hermes-dash-ai-master.wallace.boston).
+      hermes_native_api_server_traefik_enabled:
+        type: bool
+        default: false
+        description: >-
+          When true, write a Traefik file provider route for the API server. Requires
+          hermes_native_api_server_host to be reachable via host.containers.internal
+          (not 127.0.0.1).
+      hermes_native_api_server_traefik_hostname:
+        type: str
+        default: ""
+        description: FQDN Traefik should route to the API server (e.g. hermes-api-ai-master.wallace.boston).
       hermes_native_discord_bot_token:
         type: str
         default: ""

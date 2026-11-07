@@ -70,6 +70,16 @@ argument_specs:
         type: str
         default: /etc/containers/systemd
         description: Directory where Quadlet container unit files are written (quadlet mode only).
+      hermes_gateway_container_state:
+        type: str
+        default: present
+        choices:
+          - present
+          - absent
+        description: >-
+          Quadlet mode only. 'absent' stops and removes the hermes-gateway container and its
+          unit while still rendering config.yaml, profiles and SOUL.md for the hermes role's
+          container.
       hermes_gateway_image:
         type: str
         default: nousresearch/hermes-agent

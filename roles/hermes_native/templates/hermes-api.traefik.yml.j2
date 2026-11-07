@@ -1,0 +1,15 @@
+# Managed by Ansible — danmwallace.hermes.hermes_native
+http:
+  routers:
+    hermes-api-native:
+      rule: "Host(`{{ hermes_native_api_server_traefik_hostname }}`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+      service: hermes-api-native
+  services:
+    hermes-api-native:
+      loadBalancer:
+        servers:
+          - url: "http://host.containers.internal:{{ hermes_native_api_server_port }}"

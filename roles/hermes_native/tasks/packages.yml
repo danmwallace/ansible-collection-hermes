@@ -13,6 +13,10 @@
       - curl
       - nodejs
       - npm
+      # Hermes' own runtime manager (pm, since v0.23.0) stages a bundled node
+      # under ~/tools that links libatomic; without it the agent retries
+      # `sudo dnf install libatomic` on every start.
+      - libatomic
     state: present
   become: true
   when: not hermes_native_ostree_booted.stat.exists

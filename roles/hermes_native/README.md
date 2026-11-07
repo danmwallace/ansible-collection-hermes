@@ -41,6 +41,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_repo_url` | str | no | `https://github.com/NousResearch/hermes-agent` | Git URL for the hermes-agent source repo. |
 | `hermes_native_repo_version` | str | no | `v0.23.0` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
 | `hermes_native_python_version` | str | no | `"3.14"` | Python (major.minor) the venv is built with. Upstream supports one Python per release and `uv.lock` only resolves for it (3.14 since v0.23.0); a venv built with another version is removed, rebuilt and re-synced. Change it together with `hermes_native_repo_version` when a release moves to a new Python. |
+| `hermes_native_uv_extras` | list | no | `[all, discord]` | Extras for `uv sync --extra`. Since v0.23.0 upstream's `all` covers tooling only; messaging platforms (`discord`, `telegram`, ...) are separate extras. The list is recorded in `venv/.ansible-uv-extras`; changing it re-runs the sync. |
 | `hermes_native_workspace_dir` | str | no | `/home/hermes/workspace` | Pre-created directory for repos the agent will work on. |
 | `hermes_native_git_user_name` | str | no | `Hermes` | `git config user.name` for the hermes user. |
 | `hermes_native_git_user_email` | str | no | `hermes@wallace.boston` | `git config user.email` for the hermes user. |
@@ -90,14 +91,14 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
    `hermes_native_api_server_key` is empty.
 2. **Create user and workspace**: creates the `hermes` system user with a home directory and
    the `hermes_native_workspace_dir` for agent repo work.
-3. **Install system packages**: installs `git`, `nodejs`, `npm`, and build tools via `dnf`.
+3. **Install system packages**: installs `git`, `nodejs`, `npm`, `libatomic` (for the node Hermes' runtime manager stages itself) and build tools via `dnf`.
 4. **Install uv**: downloads and installs `uv` into the hermes user's home.
 5. **Install gh CLI**: installs the GitHub CLI via the GitHub RPM repository.
 6. **Clone and build hermes-agent**: clones the source repo (`force: true` to handle
    `package-lock.json` modifications from the dashboard npm build), creates the venv with
    `uv venv --python hermes_native_python_version` (rebuilding it when the existing venv was
-   made with another Python), and runs `uv sync --frozen --extra all` when the source or the
-   venv changed.
+   made with another Python), and runs `uv sync --frozen` with `hermes_native_uv_extras` when the source, the venv or
+   the extras list changed.
 7. **Configure systemd services**: renders `/etc/hermes-agent/env` (EnvironmentFile with all
    API keys and server config), merges the Ansible-owned keys into `~/config.yaml` (see
    Notes), writes `hermes-agent.service` (`hermes gateway run`), and — when

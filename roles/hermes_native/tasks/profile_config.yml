@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: MIT
+---
+# Included once per entry of hermes_native_profiles (loop_var: _profile). Same
+# merge rule as config.yml: the declared mapping is merged into the live profile
+# config so keys Hermes writes itself survive, and the legacy `model.model` key
+# is dropped in favour of `model.default`.
+- name: "Check for an existing config.yaml of profile {{ _profile.name }}"
+  ansible.builtin.stat:
+    path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
+  become: true
+  register: _hermes_native_profile_stat
+
+- name: "Read the live config.yaml of profile {{ _profile.name }}"
+  ansible.builtin.slurp:
+    src: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
+  become: true
+  register: _hermes_native_profile_slurp
+  when: _hermes_native_profile_stat.stat.exists
+  no_log: true
+
+- name: "Merge the declared keys into the live config of profile {{ _profile.name }}"
+  ansible.builtin.set_fact:
+    _hermes_native_profile_current: "{{ _hermes_native_profile_live }}"
+    _hermes_native_profile_merged: >-
+      {{ _hermes_native_profile_live
+         | combine({'model': _hermes_native_profile_live.model | default({}, true)
+                             | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
+         | combine(_profile.config | default({}, true), recursive=true) }}
+  vars:
+    _hermes_native_profile_live: >-
+      {{ (_hermes_native_profile_slurp.content | b64decode | from_yaml | default({}, true))
+         if _hermes_native_profile_stat.stat.exists else {} }}
+  no_log: true
+
+- name: "Write the merged config.yaml of profile {{ _profile.name }}"
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible — danmwallace.hermes.hermes_native
+      # Profile: {{ _profile.name }}
+      # Ansible owns the keys declared in hermes_native_profiles; everything else Hermes writes here is kept.
+      {{ _hermes_native_profile_merged | to_nice_yaml(indent=2) }}
+    dest: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
+    owner: "{{ hermes_native_user }}"
+    group: "{{ hermes_native_user }}"
+    mode: "0640"
+  become: true
+  when: _hermes_native_profile_merged != _hermes_native_profile_current
+  notify: Restart hermes-agent service

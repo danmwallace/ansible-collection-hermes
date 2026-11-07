@@ -20,15 +20,8 @@
   no_log: true
   notify: Restart hermes-agent service
 
-- name: Render hermes-agent config.yaml
-  ansible.builtin.template:
-    src: config.yaml.j2
-    dest: "/home/{{ hermes_native_user }}/config.yaml"
-    owner: "{{ hermes_native_user }}"
-    group: "{{ hermes_native_user }}"
-    mode: "0640"
-  become: true
-  notify: Restart hermes-agent service
+- name: Merge the Ansible-owned keys into hermes-agent config.yaml
+  ansible.builtin.import_tasks: config.yml
 
 - name: Render hermes-agent systemd unit
   ansible.builtin.template:

@@ -13,6 +13,9 @@ EnvironmentFile={{ hermes_native_env_file }}
 ExecStart={{ hermes_native_install_dir }}/venv/bin/hermes gateway run
 Restart=on-failure
 RestartSec=5
+# Hermes drains cron and chat turns on SIGTERM and warns when the unit gives it
+# less than 70s (agent.restart_drain_timeout + cron_drain_timeout).
+TimeoutStopSec=90
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=hermes-agent

@@ -5,6 +5,37 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-07
+
+### Added
+
+- `hermes_native`: `hermes_native_config_extra`, a mapping merged on top of the
+  role-managed `config.yaml` keys (for a `moa` preset, `max_concurrent_sessions`
+  and the like), mirroring `hermes_config_extra` in `hermes_gateway`.
+
+### Changed
+
+- `hermes_native`: `~/config.yaml` and the `~/profiles/<name>/config.yaml` files
+  are no longer rendered from templates. The role reads the live file, merges
+  the Ansible-owned keys into it (`model`, `approvals`, `platforms.api_server`,
+  `gateway.platforms.discord`, `hermes_native_config_extra`; the declared
+  mapping for profiles) and writes it back only when the merged mapping
+  differs. Keys Hermes writes itself (`_config_version`, the `/sethome`
+  channel, `model.options`, onboarding flags) therefore survive a play run,
+  and a run after Hermes reformatted the file reports no change. The model is
+  written as `model.default` (the key Hermes writes) and the legacy
+  `model.model` key is dropped on the first run, since Hermes prefers it and it
+  would otherwise pin the old model. `approvals.mode` is now quoted, so `off`
+  reaches Hermes as the string it expects rather than YAML `false`.
+- `hermes_native`: `hermes-agent.service` sets `TimeoutStopSec=90` so Hermes
+  can drain cron and chat turns on stop (it warned about the 45s default).
+
+### Fixed
+
+- `hermes_native`: check mode no longer fails in the SELinux tasks; the
+  read-only `readlink` command now runs in check mode so the facts it feeds
+  exist.
+
 ## [1.7.0] - 2026-11-06
 
 ### Added

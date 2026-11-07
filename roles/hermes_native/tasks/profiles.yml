@@ -16,16 +16,9 @@
         loop_var: _profile
         label: "{{ _profile.name }}"
 
-    - name: Render profile config.yaml files
-      ansible.builtin.template:
-        src: profile_config.yaml.j2
-        dest: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
-        owner: "{{ hermes_native_user }}"
-        group: "{{ hermes_native_user }}"
-        mode: "0640"
-      become: true
+    - name: Merge the declared profile configs into the live files
+      ansible.builtin.include_tasks: profile_config.yml
       loop: "{{ hermes_native_profiles }}"
       loop_control:
         loop_var: _profile
         label: "{{ _profile.name }}"
-      notify: Restart hermes-agent service

@@ -5,6 +5,23 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-11-07
+
+### Added
+
+- `hermes_native`: `hermes_native_uv_extras` (default `[all, discord]`), the extras
+  passed to `uv sync`. The synced list is recorded in `venv/.ansible-uv-extras`
+  and a change re-runs the sync.
+- `hermes_native`: `libatomic` in the system packages; the node that Hermes'
+  runtime manager (pm, v0.23.0+) stages under `~/tools` links it and the agent
+  otherwise tries `sudo dnf install libatomic` on every start.
+
+### Fixed
+
+- `hermes_native`: hermes-agent v0.23.0 dropped the messaging platforms from the
+  `all` extra, so `uv sync --extra all` removed `discord.py` and the Discord
+  adapter failed with "requirements not met" after the upgrade.
+
 ## [1.8.1] - 2026-11-07
 
 ### Added

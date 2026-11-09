@@ -19,6 +19,15 @@ hermes_native_repo_version: v0.23.0
 # and the dependencies are synced again.
 hermes_native_python_version: "3.14"
 
+# Extras passed to `uv sync --extra ...`. Since v0.23.0 upstream's `all` extra
+# covers the tooling (cron, mcp, web, google, ...) but not the messaging
+# platforms; each of those is its own extra that `hermes setup` would install
+# on demand. Declare the ones the gateway needs here so a sync never drops
+# them. The list is recorded in the venv and a change re-runs the sync.
+hermes_native_uv_extras:
+  - all
+  - discord
+
 # Directory for cloned repos the agent will work on
 hermes_native_workspace_dir: /home/hermes/workspace
 

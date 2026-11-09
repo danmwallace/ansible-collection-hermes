@@ -33,6 +33,13 @@ argument_specs:
         description: >-
           Python (major.minor) the venv is built with. Upstream supports one Python per
           release; a venv built with another version is rebuilt and re-synced.
+      hermes_native_uv_extras:
+        type: list
+        elements: str
+        default: [all, discord]
+        description: >-
+          Extras passed to `uv sync --extra`. Upstream's `all` no longer includes the
+          messaging platforms, so list the platform extras the gateway needs.
       hermes_native_workspace_dir:
         type: str
         default: /home/hermes/workspace

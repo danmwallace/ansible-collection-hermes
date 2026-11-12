@@ -28,12 +28,20 @@
   become: true
   when: ansible_facts.selinux.status | default('disabled') == 'enabled'
 
+# uv downloads its own Python only when no suitable system Python exists; on
+# hosts whose image ships the pinned version (python3.14 on Fedora 44) the venv
+# points at /usr/bin and the folder is never created, so only relabel it if present.
+- name: Check for uv's managed Python
+  ansible.builtin.stat:
+    path: "{{ hermes_native_home_real }}/.local/share/uv/python"
+  register: hermes_native_uv_python
+  become: true
+  when: ansible_facts.selinux.status | default('disabled') == 'enabled'
+
 - name: Ensure the agent executables carry their SELinux labels
   ansible.builtin.command:
-    cmd: >-
-      restorecon -Rv
-      {{ hermes_native_install_dir_real }}/venv/bin
-      {{ hermes_native_home_real }}/.local/share/uv/python
+    argv: "{{ ['restorecon', '-Rv', hermes_native_install_dir_real ~ '/venv/bin']
+              + ([hermes_native_uv_python.stat.path] if hermes_native_uv_python.stat.exists else []) }}"
   register: hermes_native_restorecon
   # -v also prints "not reset as customized by admin" for files it leaves alone;
   # only an actual relabel is a change.

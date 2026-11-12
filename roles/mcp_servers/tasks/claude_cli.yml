@@ -2,14 +2,10 @@
 # SPDX-License-Identifier: MIT
 # No registry (e.g. Fedora KDE): Claude Code starts a launcher that decrypts the secrets.
 - name: Find the claude CLI
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  loop: "{{ [mcp_servers_claude_bin] if mcp_servers_claude_bin else [mcp_servers_home ~ '/.local/bin/claude', '/usr/bin/claude', '/usr/local/bin/claude'] }}"
-  register: mcp_servers_claude_found
+  ansible.builtin.include_tasks: claude_bin.yml
 
-- name: Settle the claude CLI and the launcher path
+- name: Settle the launcher path
   ansible.builtin.set_fact:
-    mcp_servers_claude: "{{ (mcp_servers_claude_found.results | selectattr('stat.exists') | map(attribute='item') | list + [''])[0] }}"
     mcp_servers_launcher: "{{ mcp_servers_home }}/.local/libexec/mcp-servers/{{ mcp_servers_server.name }}"
 
 - name: Stop when there is no claude CLI to register the server with
@@ -33,25 +29,13 @@
     dest: "{{ mcp_servers_launcher }}"
     mode: "0755"
 
-- name: Check Claude Code's user config
-  ansible.builtin.stat:
-    path: "{{ mcp_servers_home }}/.claude.json"
-  register: mcp_servers_claude_json
-
-- name: Read Claude Code's user config
-  ansible.builtin.slurp:
-    src: "{{ mcp_servers_home }}/.claude.json"
-  register: mcp_servers_claude_config
-  when: mcp_servers_claude_json.stat.exists
+- name: Read Claude Code's server entry
+  ansible.builtin.include_tasks: claude_entry.yml
 
 - name: Settle whether Claude Code already starts this launcher
   ansible.builtin.set_fact:
     mcp_servers_registered: "{{ mcp_servers_now.command | default('') == mcp_servers_launcher and mcp_servers_now.type | default('stdio') == 'stdio' }}"
     mcp_servers_present: "{{ mcp_servers_now != {} }}"
-  vars:
-    mcp_servers_now: >-
-      {{ ((mcp_servers_claude_config.content | b64decode | from_json).mcpServers | default({})).get(mcp_servers_server.name, {})
-         if mcp_servers_claude_json.stat.exists else {} }}
 
 - name: Remove an outdated Claude Code entry for {{ mcp_servers_server.name }}
   become: true

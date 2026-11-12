@@ -7,7 +7,7 @@
       ansible.builtin.user:
         name: "{{ item }}"
         create_home: true
-      loop: [devreg, devcli]
+      loop: [devreg, devcli, devmove]
 
     - name: Install a stand-in MCP server that prints how it was started
       ansible.builtin.copy:
@@ -37,3 +37,12 @@
           elif a[:4] == ["mcp", "remove", "-s", "user"]:
               data.get("mcpServers", {}).pop(a[4], None)
           json.dump(data, open(path, "w"))
+
+    # Account details Claude Code keeps in ~/.claude.json must not show up in -v output.
+    - name: Give devcli a ~/.claude.json with account details
+      ansible.builtin.copy:
+        dest: /home/devcli/.claude.json
+        owner: devcli
+        mode: "0600"
+        content: '{"oauthAccount": {"emailAddress": "pii-sentinel@example.invalid"}}'
+        force: false

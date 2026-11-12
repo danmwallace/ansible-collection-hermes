@@ -116,3 +116,46 @@
           - mcp_servers_verify_sentinel.stat.mode == '0644'
           - mcp_servers_verify_sentinel.stat.checksum == mcp_servers_verify_sentinel_before.stat.checksum
         quiet: true
+
+# A machine moving from Fedora KDE to atomic-hyprland: the claude_cli pieces (Claude
+# Code's entry, the launcher, its credentials) must go once the registry takes over.
+- name: Verify the claude_cli setup is retired when a host moves to the registry
+  hosts: molecule
+  gather_facts: true
+  vars:
+    mcp_servers_verify_server:
+      name: movesrv
+      command: /usr/bin/testsrv
+      secrets: { ROUTER_PASS: "move-secret" }
+  tasks:
+    - name: Set the server up the KDE way
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devmove
+        mcp_servers_platform: claude_cli
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ mcp_servers_verify_server }}"]
+
+    - name: Run the same server again after the move to atomic-hyprland
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devmove
+        mcp_servers_platform: registry
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ mcp_servers_verify_server }}"]
+
+    - name: Check only the registry setup is left
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          h=/home/devmove
+          test -f "$h/.config/atomic-hyprland/mcp.d/movesrv.json"
+          test -f "$h/.config/atomic-hyprland/credentials/movesrv-router_pass.cred"
+          ! test -e "$h/.local/libexec/mcp-servers/movesrv"
+          ! ls "$h"/.local/share/mcp-servers/credentials/movesrv-* >/dev/null 2>&1
+          python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit("movesrv" in d.get("mcpServers", {}))' "$h/.claude.json"
+          grep -q "mcp remove -s user movesrv" "$h/claude-calls.log"
+        executable: /bin/bash
+      changed_when: false

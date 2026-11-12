@@ -63,6 +63,12 @@ Each server:
 - Every credential step runs as the user, never as root: the files live in the
   user's home, where a root write or chown could be redirected by a symlink.
   Something other than a plain file at a credential's path stops the role.
+- Secrets never reach the output, even at `-v`: entries are validated on a copy
+  without the values, the per-server and per-secret loops are `no_log`, and
+  `~/.claude.json` (account details) is read as the user and not shown.
+- Moving a host to atomic-hyprland: in registry mode the role removes the
+  claude_cli setup it made before (Claude Code's entry, the launcher, the old
+  credentials), so Claude Code and Super+A both use the registry entry.
 - `systemd-creds` output differs on every run, so a credential is rewritten
   only when decrypting the stored one gives a different value. A second run
   reports no change.
@@ -74,5 +80,6 @@ Each server:
 ## Tests
 
 ```bash
-cd roles/mcp_servers && molecule test   # podman; both platform modes, idempotence, decryption
+cd roles/mcp_servers && molecule test           # podman; both modes, idempotence, decryption, the move
+bash roles/mcp_servers/tests/check-verbose-log.sh  # the same at -v, failing if a secret is printed
 ```

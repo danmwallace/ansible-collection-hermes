@@ -1,0 +1,11 @@
+---
+# SPDX-License-Identifier: MIT
+- name: Look for the claude CLI
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ [mcp_servers_claude_bin] if mcp_servers_claude_bin else [mcp_servers_home ~ '/.local/bin/claude', '/usr/bin/claude', '/usr/local/bin/claude'] }}"
+  register: mcp_servers_claude_found
+
+- name: Settle the claude CLI
+  ansible.builtin.set_fact:
+    mcp_servers_claude: "{{ (mcp_servers_claude_found.results | selectattr('stat.exists') | map(attribute='item') | list + [''])[0] }}"

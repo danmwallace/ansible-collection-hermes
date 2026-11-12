@@ -1,17 +1,24 @@
 ---
 # SPDX-License-Identifier: MIT
+# Checked on a copy that has only the secrets' names: a loop item (and an assert's
+# result) is printed at -v, and the values come from ansible-vault.
 - name: Ensure every server entry is complete
   ansible.builtin.assert:
     that:
       - item.name is match('^[A-Za-z0-9._-]+$')
-      - item.command | default('') | length > 0
-      - (item.env | default({})).keys() | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
-      - (item.secrets | default({})).keys() | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
-    fail_msg: "mcp_servers_list entry {{ item.name | default('?') }} needs a name, a command and plain ENV_NAME keys"
+      - item.command | length > 0
+      - item.env_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+      - item.secret_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+    fail_msg: "mcp_servers_list entry {{ item.name }} needs a name, a command and plain ENV_NAME keys"
     quiet: true
-  loop: "{{ mcp_servers_list }}"
+  loop: "{{ mcp_servers_shapes }}"
   loop_control:
-    label: "{{ item.name | default('?') }}"
+    label: "{{ item.name }}"
+  vars:
+    mcp_servers_shapes: >-
+      {% set shapes = [] %}{% for s in mcp_servers_list %}{% set _ = shapes.append({
+        'name': s.name | default('?') | string, 'command': s.command | default('') | string,
+        'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list}) %}{% endfor %}{{ shapes }}
 
 - name: Look up the user's home directory
   ansible.builtin.getent:
@@ -50,3 +57,4 @@
   loop_control:
     loop_var: mcp_servers_server
     label: "{{ mcp_servers_server.name }}"
+  no_log: true  # each item carries the server's secrets

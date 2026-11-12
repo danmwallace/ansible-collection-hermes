@@ -32,6 +32,7 @@
   loop_control:
     loop_var: mcp_servers_secret
     label: "{{ mcp_servers_server.name }}-{{ mcp_servers_secret.key | lower }}"
+  no_log: true  # each item is a secret
 
 - name: Ensure Claude Code or the registry knows {{ mcp_servers_server.name }}
   ansible.builtin.include_tasks: "{{ mcp_servers_mode }}.yml"

@@ -28,6 +28,7 @@ collections:
 | --- | --- |
 | [`danmwallace.hermes.hermes`](roles/hermes/README.md) | Deploy Hermes Agent Docker Compose stack behind Traefik. |
 | [`danmwallace.hermes.hermes_gateway`](roles/hermes_gateway/README.md) | Configure Hermes Agent profiles, gateways, and identity files. |
+| [`danmwallace.hermes.mcp_servers`](roles/mcp_servers/README.md) | Per-machine MCP servers for Claude Code (or atomic-hyprland's registry), with secrets as `systemd-creds --user` credentials. |
 
 ## Example Playbook
 

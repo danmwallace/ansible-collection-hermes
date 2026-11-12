@@ -1,0 +1,21 @@
+---
+# SPDX-License-Identifier: MIT
+# The account whose MCP servers, credentials and Claude Code config these are.
+mcp_servers_user: "{{ ansible_user_id }}"
+
+# One entry per server:
+#   name:            the server's name (registry file stem / Claude Code server name)
+#   command, args:   how to start it
+#   env:             plain environment (no secrets)
+#   secrets:         ENV_NAME: value (from ansible-vault); stored as systemd-creds --user credentials
+#   files:           [{src, dest, mode}] non-secret files the server reads (dest may start with ~)
+#   npm_package:     optional {name, version} installed globally
+#   read_only_tools: optional; tools that run without an approval card on atomic-hyprland
+mcp_servers_list: []
+
+# auto: atomic-hyprland (bootc with hypr-mcp) -> registry, anything else -> claude_cli
+mcp_servers_platform: auto
+
+# claude_cli mode: the claude binary. Empty means the first of ~/.local/bin/claude,
+# /usr/bin/claude, /usr/local/bin/claude that exists.
+mcp_servers_claude_bin: ""

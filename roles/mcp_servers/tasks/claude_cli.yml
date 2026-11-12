@@ -1,0 +1,77 @@
+---
+# SPDX-License-Identifier: MIT
+# No registry (e.g. Fedora KDE): Claude Code starts a launcher that decrypts the secrets.
+- name: Find the claude CLI
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ [mcp_servers_claude_bin] if mcp_servers_claude_bin else [mcp_servers_home ~ '/.local/bin/claude', '/usr/bin/claude', '/usr/local/bin/claude'] }}"
+  register: mcp_servers_claude_found
+
+- name: Settle the claude CLI and the launcher path
+  ansible.builtin.set_fact:
+    mcp_servers_claude: "{{ (mcp_servers_claude_found.results | selectattr('stat.exists') | map(attribute='item') | list + [''])[0] }}"
+    mcp_servers_launcher: "{{ mcp_servers_home }}/.local/libexec/mcp-servers/{{ mcp_servers_server.name }}"
+
+- name: Stop when there is no claude CLI to register the server with
+  ansible.builtin.fail:
+    msg: "No claude CLI found for {{ mcp_servers_user }}; set mcp_servers_claude_bin."
+  when: not mcp_servers_claude
+
+- name: Ensure the launcher folder exists
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ mcp_servers_launcher | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure the launcher is written for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.template:
+    src: launcher.sh.j2
+    dest: "{{ mcp_servers_launcher }}"
+    mode: "0755"
+
+- name: Check Claude Code's user config
+  ansible.builtin.stat:
+    path: "{{ mcp_servers_home }}/.claude.json"
+  register: mcp_servers_claude_json
+
+- name: Read Claude Code's user config
+  ansible.builtin.slurp:
+    src: "{{ mcp_servers_home }}/.claude.json"
+  register: mcp_servers_claude_config
+  when: mcp_servers_claude_json.stat.exists
+
+- name: Settle whether Claude Code already starts this launcher
+  ansible.builtin.set_fact:
+    mcp_servers_registered: "{{ mcp_servers_now.command | default('') == mcp_servers_launcher and mcp_servers_now.type | default('stdio') == 'stdio' }}"
+    mcp_servers_present: "{{ mcp_servers_now != {} }}"
+  vars:
+    mcp_servers_now: >-
+      {{ ((mcp_servers_claude_config.content | b64decode | from_json).mcpServers | default({})).get(mcp_servers_server.name, {})
+         if mcp_servers_claude_json.stat.exists else {} }}
+
+- name: Remove an outdated Claude Code entry for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.command:
+    argv: ["{{ mcp_servers_claude }}", mcp, remove, -s, user, "{{ mcp_servers_server.name }}"]
+  when: mcp_servers_present and not mcp_servers_registered
+  changed_when: true
+
+- name: Ensure Claude Code starts the launcher for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ mcp_servers_claude }}"
+      - mcp
+      - add-json
+      - -s
+      - user
+      - "{{ mcp_servers_server.name }}"
+      - "{{ {'type': 'stdio', 'command': mcp_servers_launcher, 'args': [], 'env': {}} | to_json }}"
+  when: not mcp_servers_registered
+  changed_when: true

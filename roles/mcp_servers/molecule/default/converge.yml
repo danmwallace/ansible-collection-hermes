@@ -1,0 +1,31 @@
+---
+- name: Converge
+  hosts: molecule
+  gather_facts: true
+  vars:
+    test_server:
+      name: testsrv
+      command: /usr/bin/testsrv
+      args: [serve]
+      env: { LOG_LEVEL: info }
+      secrets: { ROUTER_PASS: "s3cr3t-value" }
+      files:
+        - { src: "{{ playbook_dir }}/files/routers.yaml", dest: "~/.testsrv/routers.yaml", mode: "0600" }
+      read_only_tools: [list_things]
+  tasks:
+    - name: Apply mcp_servers in registry mode (atomic-hyprland)
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: registry
+        mcp_servers_list: ["{{ test_server }}"]
+
+    - name: Apply mcp_servers in claude_cli mode (a host without the registry)
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devcli
+        mcp_servers_platform: claude_cli
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ test_server }}"]

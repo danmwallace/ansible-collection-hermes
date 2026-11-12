@@ -59,3 +59,60 @@
           - mcp_servers_verify_decrypt.stdout == 's3cr3t-value'
           - mcp_servers_verify_launch.stdout == 'serve info s3cr3t-value'
         quiet: true
+
+# Security regression: a symlink planted where a credential goes must not let the role
+# write through it as root.
+- name: Verify a planted symlink can't redirect a credential write
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Plant a root-owned sentinel and a symlink to it at a credential's path
+      ansible.builtin.shell:
+        # The sentinel is a valid credential holding the right value, so the role skips
+        # re-encrypting and goes straight to fixing ownership: the step that must not
+        # follow the link.
+        cmd: |
+          set -eo pipefail
+          printf trap-secret | systemd-creds encrypt --user --uid=devcli --name=trap-token.cred - /etc/mcp-servers-sentinel
+          chown root:root /etc/mcp-servers-sentinel
+          chmod 0644 /etc/mcp-servers-sentinel
+          ln -sfn /etc/mcp-servers-sentinel /home/devcli/.local/share/mcp-servers/credentials/trap-token.cred
+          chown -h devcli: /home/devcli/.local/share/mcp-servers/credentials/trap-token.cred
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Record the sentinel's checksum before the run
+      ansible.builtin.stat:
+        path: /etc/mcp-servers-sentinel
+        get_checksum: true
+      register: mcp_servers_verify_sentinel_before
+
+    - name: Apply the role for a server whose credential path is the trap
+      block:
+        - name: Include mcp_servers
+          ansible.builtin.include_role:
+            name: danmwallace.hermes.mcp_servers
+          vars:
+            mcp_servers_user: devcli
+            mcp_servers_platform: claude_cli
+            mcp_servers_claude_bin: /usr/local/bin/claude
+            mcp_servers_list:
+              - { name: trap, command: /usr/bin/testsrv, secrets: { TOKEN: "trap-secret" } }
+      rescue:
+        - name: Note the role stopped (acceptable; writing through the link is not)
+          ansible.builtin.debug:
+            msg: the role stopped at the planted symlink
+
+    - name: Read the sentinel
+      ansible.builtin.stat:
+        path: /etc/mcp-servers-sentinel
+        get_checksum: true
+      register: mcp_servers_verify_sentinel
+
+    - name: Check the sentinel is untouched and still root's
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_sentinel.stat.pw_name == 'root'
+          - mcp_servers_verify_sentinel.stat.mode == '0644'
+          - mcp_servers_verify_sentinel.stat.checksum == mcp_servers_verify_sentinel_before.stat.checksum
+        quiet: true

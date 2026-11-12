@@ -60,6 +60,9 @@ Each server:
 - A credential file `<n>.cred` is encrypted with `--name=<n>.cred`, because
   atomic-hyprland's `hypr-mcp run` decrypts without `--name` and systemd then
   expects the file's own name.
+- Every credential step runs as the user, never as root: the files live in the
+  user's home, where a root write or chown could be redirected by a symlink.
+  Something other than a plain file at a credential's path stops the role.
 - `systemd-creds` output differs on every run, so a credential is rewritten
   only when decrypting the stored one gives a different value. A second run
   reports no change.

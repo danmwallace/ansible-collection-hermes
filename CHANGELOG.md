@@ -5,6 +5,22 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-11-12
+
+### Added
+
+- `mcp_servers`: per-machine MCP servers from one `mcp_servers_list`. On
+  atomic-hyprland (`/run/ostree-booted` and `hypr-mcp` present) each server is
+  a drop-in in `~/.config/atomic-hyprland/mcp.d/`; anywhere else it is
+  registered with `claude mcp add-json -s user` behind a generated launcher.
+  Secrets are stored only as `systemd-creds --user` credentials, encrypted and
+  checked as the user (never as root; a symlink at the credential path is
+  refused) and rewritten only when the value changes. A host that moves to
+  atomic-hyprland needs only the play run again: the `claude_cli` registration
+  and launcher are retired. Works in check mode on a fresh host; no secret
+  reaches the output at any verbosity (`tests/check-verbose-log.sh`). Covered
+  by a molecule scenario.
+
 ## [1.8.3] - 2026-11-12
 
 ### Fixed

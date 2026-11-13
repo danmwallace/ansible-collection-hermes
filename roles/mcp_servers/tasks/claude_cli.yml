@@ -1,0 +1,61 @@
+---
+# SPDX-License-Identifier: MIT
+# No registry (e.g. Fedora KDE): Claude Code starts a launcher that decrypts the secrets.
+- name: Find the claude CLI
+  ansible.builtin.include_tasks: claude_bin.yml
+
+- name: Settle the launcher path
+  ansible.builtin.set_fact:
+    mcp_servers_launcher: "{{ mcp_servers_home }}/.local/libexec/mcp-servers/{{ mcp_servers_server.name }}"
+
+- name: Stop when there is no claude CLI to register the server with
+  ansible.builtin.fail:
+    msg: "No claude CLI found for {{ mcp_servers_user }}; set mcp_servers_claude_bin."
+  when: not mcp_servers_claude
+
+- name: Ensure the launcher folder exists
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ mcp_servers_launcher | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure the launcher is written for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.template:
+    src: launcher.sh.j2
+    dest: "{{ mcp_servers_launcher }}"
+    mode: "0755"
+
+- name: Read Claude Code's server entry
+  ansible.builtin.include_tasks: claude_entry.yml
+
+- name: Settle whether Claude Code already starts this launcher
+  ansible.builtin.set_fact:
+    mcp_servers_registered: "{{ mcp_servers_now.command | default('') == mcp_servers_launcher and mcp_servers_now.type | default('stdio') == 'stdio' }}"
+    mcp_servers_present: "{{ mcp_servers_now != {} }}"
+
+- name: Remove an outdated Claude Code entry for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.command:
+    argv: ["{{ mcp_servers_claude }}", mcp, remove, -s, user, "{{ mcp_servers_server.name }}"]
+  when: mcp_servers_present and not mcp_servers_registered
+  changed_when: true
+
+- name: Ensure Claude Code starts the launcher for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ mcp_servers_claude }}"
+      - mcp
+      - add-json
+      - -s
+      - user
+      - "{{ mcp_servers_server.name }}"
+      - "{{ {'type': 'stdio', 'command': mcp_servers_launcher, 'args': [], 'env': {}} | to_json }}"
+  when: not mcp_servers_registered
+  changed_when: true

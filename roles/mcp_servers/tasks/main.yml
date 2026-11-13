@@ -1,0 +1,60 @@
+---
+# SPDX-License-Identifier: MIT
+# Checked on a copy that has only the secrets' names: a loop item (and an assert's
+# result) is printed at -v, and the values come from ansible-vault.
+- name: Ensure every server entry is complete
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[A-Za-z0-9._-]+$')
+      - item.command | length > 0
+      - item.env_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+      - item.secret_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
+    fail_msg: "mcp_servers_list entry {{ item.name }} needs a name, a command and plain ENV_NAME keys"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    mcp_servers_shapes: >-
+      {% set shapes = [] %}{% for s in mcp_servers_list %}{% set _ = shapes.append({
+        'name': s.name | default('?') | string, 'command': s.command | default('') | string,
+        'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list}) %}{% endfor %}{{ shapes }}
+
+- name: Look up the user's home directory
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ mcp_servers_user }}"
+
+- name: Detect an atomic-hyprland host
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: [/run/ostree-booted, /usr/bin/hypr-mcp]
+  register: mcp_servers_atomic
+  when: mcp_servers_platform == 'auto'
+
+- name: Settle the platform and paths
+  ansible.builtin.set_fact:
+    mcp_servers_home: "{{ mcp_servers_home_dir }}"
+    mcp_servers_mode: "{{ mcp_servers_platform if mcp_servers_platform != 'auto' else ('registry' if mcp_servers_is_atomic else 'claude_cli') }}"
+    mcp_servers_cred_dir: >-
+      {{ mcp_servers_home_dir ~ ('/.config/atomic-hyprland/credentials' if (mcp_servers_platform == 'registry'
+         or (mcp_servers_platform == 'auto' and mcp_servers_is_atomic)) else '/.local/share/mcp-servers/credentials') }}
+  vars:
+    mcp_servers_home_dir: "{{ ansible_facts.getent_passwd[mcp_servers_user][4] }}"
+    mcp_servers_is_atomic: "{{ mcp_servers_platform == 'auto' and (mcp_servers_atomic.results | map(attribute='stat.exists') | min) }}"
+
+- name: Ensure the credential directory exists and is private
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ mcp_servers_cred_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Ensure each server is set up
+  ansible.builtin.include_tasks: server.yml
+  loop: "{{ mcp_servers_list }}"
+  loop_control:
+    loop_var: mcp_servers_server
+    label: "{{ mcp_servers_server.name }}"
+  no_log: true  # each item carries the server's secrets

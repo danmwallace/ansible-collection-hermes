@@ -1,0 +1,161 @@
+---
+- name: Verify
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Read the registry entry
+      ansible.builtin.slurp:
+        src: /home/devreg/.config/atomic-hyprland/mcp.d/testsrv.json
+      register: mcp_servers_verify_registry
+
+    - name: Check the registry entry holds a credential reference, not the secret
+      ansible.builtin.assert:
+        that:
+          - (mcp_servers_verify_registry.content | b64decode | from_json) == expected
+          - "'s3cr3t-value' not in (mcp_servers_verify_registry.content | b64decode)"
+        quiet: true
+      vars:
+        expected:
+          command: /usr/bin/testsrv
+          args: [serve]
+          env:
+            LOG_LEVEL: info
+            ROUTER_PASS: { credential: testsrv-router_pass }
+          readOnlyTools: [list_things]
+
+    - name: Check the secret is nowhere in plain text and the files landed
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          ! grep -rqs s3cr3t-value /home/devreg /home/devcli --exclude=claude-calls.log
+          test "$(stat -c '%a %U' /home/devreg/.config/atomic-hyprland/credentials/testsrv-router_pass.cred)" = "600 devreg"
+          test "$(stat -c '%a %U' /home/devcli/.local/share/mcp-servers/credentials/testsrv-router_pass.cred)" = "600 devcli"
+          test "$(stat -c '%a %U' /home/devreg/.testsrv/routers.yaml)" = "600 devreg"
+          test "$(stat -c '%a %U' /home/devcli/.local/libexec/mcp-servers/testsrv)" = "755 devcli"
+          test "$(grep -c 'mcp add-json -s user testsrv' /home/devcli/claude-calls.log)" = 1
+          ! test -e /home/devreg/claude-calls.log
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Decrypt the registry credential the way hypr-mcp run does (no --name)
+      become: true
+      become_user: devreg
+      ansible.builtin.command:
+        cmd: systemd-creds --user decrypt /home/devreg/.config/atomic-hyprland/credentials/testsrv-router_pass.cred -
+      register: mcp_servers_verify_decrypt
+      changed_when: false
+
+    - name: Start the server through the claude_cli launcher
+      become: true
+      become_user: devcli
+      ansible.builtin.command:
+        cmd: /home/devcli/.local/libexec/mcp-servers/testsrv
+      register: mcp_servers_verify_launch
+      changed_when: false
+
+    - name: Check both paths deliver the secret to the server
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_decrypt.stdout == 's3cr3t-value'
+          - mcp_servers_verify_launch.stdout == 'serve info s3cr3t-value'
+        quiet: true
+
+# Security regression: a symlink planted where a credential goes must not let the role
+# write through it as root.
+- name: Verify a planted symlink can't redirect a credential write
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Plant a root-owned sentinel and a symlink to it at a credential's path
+      ansible.builtin.shell:
+        # The sentinel is a valid credential holding the right value, so the role skips
+        # re-encrypting and goes straight to fixing ownership: the step that must not
+        # follow the link.
+        cmd: |
+          set -eo pipefail
+          printf trap-secret | systemd-creds encrypt --user --uid=devcli --name=trap-token.cred - /etc/mcp-servers-sentinel
+          chown root:root /etc/mcp-servers-sentinel
+          chmod 0644 /etc/mcp-servers-sentinel
+          ln -sfn /etc/mcp-servers-sentinel /home/devcli/.local/share/mcp-servers/credentials/trap-token.cred
+          chown -h devcli: /home/devcli/.local/share/mcp-servers/credentials/trap-token.cred
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Record the sentinel's checksum before the run
+      ansible.builtin.stat:
+        path: /etc/mcp-servers-sentinel
+        get_checksum: true
+      register: mcp_servers_verify_sentinel_before
+
+    - name: Apply the role for a server whose credential path is the trap
+      block:
+        - name: Include mcp_servers
+          ansible.builtin.include_role:
+            name: danmwallace.hermes.mcp_servers
+          vars:
+            mcp_servers_user: devcli
+            mcp_servers_platform: claude_cli
+            mcp_servers_claude_bin: /usr/local/bin/claude
+            mcp_servers_list:
+              - { name: trap, command: /usr/bin/testsrv, secrets: { TOKEN: "trap-secret" } }
+      rescue:
+        - name: Note the role stopped (acceptable; writing through the link is not)
+          ansible.builtin.debug:
+            msg: the role stopped at the planted symlink
+
+    - name: Read the sentinel
+      ansible.builtin.stat:
+        path: /etc/mcp-servers-sentinel
+        get_checksum: true
+      register: mcp_servers_verify_sentinel
+
+    - name: Check the sentinel is untouched and still root's
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_sentinel.stat.pw_name == 'root'
+          - mcp_servers_verify_sentinel.stat.mode == '0644'
+          - mcp_servers_verify_sentinel.stat.checksum == mcp_servers_verify_sentinel_before.stat.checksum
+        quiet: true
+
+# A machine moving from Fedora KDE to atomic-hyprland: the claude_cli pieces (Claude
+# Code's entry, the launcher, its credentials) must go once the registry takes over.
+- name: Verify the claude_cli setup is retired when a host moves to the registry
+  hosts: molecule
+  gather_facts: true
+  vars:
+    mcp_servers_verify_server:
+      name: movesrv
+      command: /usr/bin/testsrv
+      secrets: { ROUTER_PASS: "move-secret" }
+  tasks:
+    - name: Set the server up the KDE way
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devmove
+        mcp_servers_platform: claude_cli
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ mcp_servers_verify_server }}"]
+
+    - name: Run the same server again after the move to atomic-hyprland
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devmove
+        mcp_servers_platform: registry
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ mcp_servers_verify_server }}"]
+
+    - name: Check only the registry setup is left
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          h=/home/devmove
+          test -f "$h/.config/atomic-hyprland/mcp.d/movesrv.json"
+          test -f "$h/.config/atomic-hyprland/credentials/movesrv-router_pass.cred"
+          ! test -e "$h/.local/libexec/mcp-servers/movesrv"
+          ! ls "$h"/.local/share/mcp-servers/credentials/movesrv-* >/dev/null 2>&1
+          python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit("movesrv" in d.get("mcpServers", {}))' "$h/.claude.json"
+          grep -q "mcp remove -s user movesrv" "$h/claude-calls.log"
+        executable: /bin/bash
+      changed_when: false

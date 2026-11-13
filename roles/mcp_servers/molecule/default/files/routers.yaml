@@ -1,0 +1,6 @@
+routers:
+  home01:
+    host: 192.0.2.1
+    credentials:
+      source: env
+      envPrefix: ROUTER_HOME01

@@ -1,0 +1,38 @@
+---
+# SPDX-License-Identifier: MIT
+- name: Ensure the npm package is installed for {{ mcp_servers_server.name }}
+  ansible.builtin.include_tasks: npm.yml
+  when: mcp_servers_server.npm_package is defined
+
+- name: Ensure the file directories exist for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ item.dest | regex_replace('^~(?=/|$)', mcp_servers_home) | dirname }}"
+    state: directory
+    mode: "0700"
+  loop: "{{ mcp_servers_server.files | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Ensure the files are in place for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest | regex_replace('^~(?=/|$)', mcp_servers_home) }}"
+    mode: "{{ item.mode | default('0600') }}"
+  loop: "{{ mcp_servers_server.files | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Ensure the secrets are stored as credentials for {{ mcp_servers_server.name }}
+  ansible.builtin.include_tasks: credential.yml
+  loop: "{{ mcp_servers_server.secrets | default({}) | dict2items }}"
+  loop_control:
+    loop_var: mcp_servers_secret
+    label: "{{ mcp_servers_server.name }}-{{ mcp_servers_secret.key | lower }}"
+  no_log: true  # each item is a secret
+
+- name: Ensure Claude Code or the registry knows {{ mcp_servers_server.name }}
+  ansible.builtin.include_tasks: "{{ mcp_servers_mode }}.yml"

@@ -1,0 +1,69 @@
+---
+# SPDX-License-Identifier: MIT
+# atomic-hyprland's registry: hypr-mcp syncs it into Claude Code and Gemini CLI, and the
+# desktop agent (Super+A, Fix it) reads it directly. Secrets are {"credential": N}
+# references that hypr-mcp run decrypts when the server starts.
+- name: Ensure the registry folder exists
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ mcp_servers_home }}/.config/atomic-hyprland/mcp.d"
+    state: directory
+    mode: "0755"
+
+- name: Ensure the registry entry is written for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.copy:
+    dest: "{{ mcp_servers_home }}/.config/atomic-hyprland/mcp.d/{{ mcp_servers_server.name }}.json"
+    mode: "0644"
+    content: "{{ mcp_servers_entry | to_nice_json(sort_keys=true) }}\n"
+  vars:
+    mcp_servers_secret_refs: >-
+      {{ dict((mcp_servers_server.secrets | default({})).keys()
+              | zip((mcp_servers_server.secrets | default({})).keys()
+                    | map('lower') | map('regex_replace', '^', mcp_servers_server.name ~ '-')
+                    | map('community.general.dict_kv', 'credential'))) }}
+    mcp_servers_entry: >-
+      {{ {'command': mcp_servers_server.command, 'args': mcp_servers_server.args | default([]),
+          'env': (mcp_servers_server.env | default({})) | combine(mcp_servers_secret_refs)}
+         | combine({'readOnlyTools': mcp_servers_server.read_only_tools} if mcp_servers_server.read_only_tools is defined else {}) }}
+
+# A host that moved here from Fedora KDE (claude_cli mode) still has Claude Code's entry,
+# the launcher and the old credentials; hypr-mcp leaves entries it didn't add alone.
+- name: Settle the old launcher path
+  ansible.builtin.set_fact:
+    mcp_servers_launcher: "{{ mcp_servers_home }}/.local/libexec/mcp-servers/{{ mcp_servers_server.name }}"
+
+- name: Read Claude Code's server entry
+  ansible.builtin.include_tasks: claude_entry.yml
+
+- name: Retire the pre-registry setup for {{ mcp_servers_server.name }}
+  when: mcp_servers_now.command | default('') == mcp_servers_launcher
+  block:
+    - name: Find the claude CLI
+      ansible.builtin.include_tasks: claude_bin.yml
+
+    - name: Remove Claude Code's old entry for {{ mcp_servers_server.name }}
+      become: true
+      become_user: "{{ mcp_servers_user }}"
+      ansible.builtin.command:
+        argv: ["{{ mcp_servers_claude }}", mcp, remove, -s, user, "{{ mcp_servers_server.name }}"]
+      when: mcp_servers_claude | length > 0
+      changed_when: true
+
+- name: Find the old credentials for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.find:
+    paths: "{{ mcp_servers_home }}/.local/share/mcp-servers/credentials"
+    patterns: "{{ mcp_servers_server.name }}-*.cred"
+  register: mcp_servers_old_creds
+
+- name: Remove the old launcher and credentials for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ [mcp_servers_launcher] + (mcp_servers_old_creds.files | map(attribute='path') | list) }}"

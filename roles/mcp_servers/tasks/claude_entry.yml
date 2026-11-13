@@ -1,0 +1,26 @@
+---
+# SPDX-License-Identifier: MIT
+# ~/.claude.json is the user's file and holds account details: it is read as the user
+# (a root read would follow a symlink planted there) and never shown in the output.
+- name: Check Claude Code's user config
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.stat:
+    path: "{{ mcp_servers_home }}/.claude.json"
+  register: mcp_servers_claude_json
+
+- name: Read Claude Code's user config
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.slurp:
+    src: "{{ mcp_servers_home }}/.claude.json"
+  register: mcp_servers_claude_config
+  when: mcp_servers_claude_json.stat.exists
+  no_log: true
+
+- name: Keep only this server's entry
+  ansible.builtin.set_fact:
+    mcp_servers_now: >-
+      {{ ((mcp_servers_claude_config.content | b64decode | from_json).mcpServers | default({})).get(mcp_servers_server.name, {})
+         if mcp_servers_claude_json.stat.exists else {} }}
+  no_log: true

@@ -1,0 +1,14 @@
+#!/usr/bin/bash
+# {{ ansible_managed }}
+# Starts the {{ mcp_servers_server.name }} MCP server. Its secrets are decrypted from
+# systemd-creds user credentials at start, so none is stored in plain text.
+set -euo pipefail
+{% for key, value in (mcp_servers_server.env | default({})).items() %}
+export {{ key }}={{ value | string | quote }}
+{% endfor %}
+{% for key in (mcp_servers_server.secrets | default({})).keys() %}
+{{ key }}="$(systemd-creds --user decrypt {{ (mcp_servers_cred_dir ~ '/' ~ mcp_servers_server.name ~ '-' ~ (key | lower) ~ '.cred') | quote }} -)"
+export {{ key }}
+{% endfor %}
+exec {{ mcp_servers_server.command | quote }}{% for arg in mcp_servers_server.args | default([]) %} {{ arg | string | quote }}{% endfor %}
+

@@ -1,0 +1,39 @@
+---
+# SPDX-License-Identifier: MIT
+# System npm when the host has it (Fedora KDE); otherwise Homebrew's node, as the user
+# (atomic-hyprland ships no Node.js, and the desktop playbook installs Homebrew).
+- name: Check for a system npm and for Homebrew
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: [/usr/bin/npm, /home/linuxbrew/.linuxbrew/bin/brew]
+  register: mcp_servers_npm_tools
+
+- name: Ensure the npm package is installed with the system npm
+  community.general.npm:
+    name: "{{ mcp_servers_server.npm_package.name }}"
+    version: "{{ mcp_servers_server.npm_package.version }}"
+    global: true
+  when: mcp_servers_npm_tools.results[0].stat.exists
+
+- name: Ensure the package is installed with Homebrew's node, as the user
+  when: not mcp_servers_npm_tools.results[0].stat.exists
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  block:
+    - name: Stop when there is neither npm nor Homebrew
+      ansible.builtin.fail:
+        msg: "{{ mcp_servers_server.name }} needs npm or Homebrew to install {{ mcp_servers_server.npm_package.name }}"
+      when: not mcp_servers_npm_tools.results[1].stat.exists
+
+    - name: Ensure Homebrew's node is installed
+      community.general.homebrew:
+        name: node
+        state: present
+        path: /home/linuxbrew/.linuxbrew/bin
+
+    - name: Ensure the npm package is installed with Homebrew's npm
+      community.general.npm:
+        name: "{{ mcp_servers_server.npm_package.name }}"
+        version: "{{ mcp_servers_server.npm_package.version }}"
+        global: true
+        executable: /home/linuxbrew/.linuxbrew/bin/npm

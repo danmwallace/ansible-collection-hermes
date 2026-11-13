@@ -1,0 +1,48 @@
+---
+- name: Prepare
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Ensure the two test users exist (one per platform mode)
+      ansible.builtin.user:
+        name: "{{ item }}"
+        create_home: true
+      loop: [devreg, devcli, devmove]
+
+    - name: Install a stand-in MCP server that prints how it was started
+      ansible.builtin.copy:
+        dest: /usr/bin/testsrv
+        mode: "0755"
+        content: |
+          #!/usr/bin/bash
+          echo "$* ${LOG_LEVEL:-} ${ROUTER_PASS:-}"
+
+    # Records each call and, like the real CLI, writes add-json's server into
+    # ~/.claude.json, so a second run can see it is already there.
+    - name: Install a stand-in claude CLI
+      ansible.builtin.copy:
+        dest: /usr/local/bin/claude
+        mode: "0755"
+        content: |
+          #!/usr/bin/python3
+          import json, os, sys
+          home = os.path.expanduser("~")
+          with open(os.path.join(home, "claude-calls.log"), "a") as log:
+              log.write(" ".join(sys.argv[1:]) + "\n")
+          path = os.path.join(home, ".claude.json")
+          data = json.load(open(path)) if os.path.exists(path) else {}
+          a = sys.argv[1:]
+          if a[:4] == ["mcp", "add-json", "-s", "user"]:
+              data.setdefault("mcpServers", {})[a[4]] = json.loads(a[5])
+          elif a[:4] == ["mcp", "remove", "-s", "user"]:
+              data.get("mcpServers", {}).pop(a[4], None)
+          json.dump(data, open(path, "w"))
+
+    # Account details Claude Code keeps in ~/.claude.json must not show up in -v output.
+    - name: Give devcli a ~/.claude.json with account details
+      ansible.builtin.copy:
+        dest: /home/devcli/.claude.json
+        owner: devcli
+        mode: "0600"
+        content: '{"oauthAccount": {"emailAddress": "pii-sentinel@example.invalid"}}'
+        force: false

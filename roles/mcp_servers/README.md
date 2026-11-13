@@ -19,7 +19,7 @@ needs the play run again.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `mcp_servers_user` | `ansible_user_id` | whose servers and credentials these are |
+| `mcp_servers_user` | `ansible_facts.user_id` | whose servers and credentials these are |
 | `mcp_servers_list` | `[]` | the servers (below) |
 | `mcp_servers_platform` | `auto` | `registry`, `claude_cli` or `auto` |
 | `mcp_servers_claude_bin` | `""` | `claude_cli` mode: the CLI; empty finds `~/.local/bin/claude`, `/usr/bin/claude` or `/usr/local/bin/claude` |

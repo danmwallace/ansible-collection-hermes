@@ -1,7 +1,7 @@
 ---
 # SPDX-License-Identifier: MIT
 # The account whose MCP servers, credentials and Claude Code config these are.
-mcp_servers_user: "{{ ansible_user_id }}"
+mcp_servers_user: "{{ ansible_facts['user_id'] }}"
 
 # One entry per server:
 #   name:            the server's name (registry file stem / Claude Code server name)

@@ -161,7 +161,7 @@ argument_specs:
       mcp_servers_download_dir:
         type: str
         default: /var/cache/mcp-servers
-        description: Where github_release keeps downloaded assets, by server and version.
+        description: Where github_release keeps downloaded assets, by server, version and sha256.
       mcp_servers_uv_bin:
         type: str
         default: ""

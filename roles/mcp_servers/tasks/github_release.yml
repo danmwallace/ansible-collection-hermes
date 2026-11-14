@@ -3,13 +3,15 @@
 # The server's binary comes from a GitHub release asset, checked against the pinned sha256
 # before anything is unpacked or installed: get_url fails on a mismatch and keeps nothing.
 # Root installs it to command, in /usr/local/bin (/var/usrlocal on bootc, which survives
-# image updates). Downloads are kept by server and version, so a new version downloads
-# again and an unchanged one does nothing.
+# image updates). Downloads are kept by server, version and sha256: a new version or a new
+# pin downloads and unpacks into a fresh folder (never reusing a binary unpacked from an
+# older asset), and an unchanged one does nothing.
 - name: Settle the release paths for {{ mcp_servers_server.name }}
   ansible.builtin.set_fact:
     mcp_servers_release: "{{ mcp_servers_server.github_release }}"
     mcp_servers_release_dir: >-
-      {{ mcp_servers_download_dir }}/{{ mcp_servers_server.name }}/{{ mcp_servers_server.github_release.version }}
+      {{ mcp_servers_download_dir }}/{{ mcp_servers_server.name }}/{{ mcp_servers_server.github_release.version
+      }}/{{ mcp_servers_server.github_release.sha256 | lower }}
 
 - name: Ensure the download folders exist for {{ mcp_servers_server.name }}
   become: true

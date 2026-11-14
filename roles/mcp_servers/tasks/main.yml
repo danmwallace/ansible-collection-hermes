@@ -12,7 +12,8 @@
         'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list,
         'header_keys': ((s.headers | default({})) | list) + ((s.header_secrets | default({})) | list),
         'read_only': s.read_only_tools | default([]), 'deny': s.deny_tools | default([]),
-        'release_command': (s.command | default('') | string) if s.github_release is defined else none}) %}{% endfor %}{{ shapes }}
+        'release_command': (s.command | default('') | string) if s.github_release is defined else none,
+        'release_sha': (s.github_release.sha256 | default('') | string) if s.github_release is defined else none}) %}{% endfor %}{{ shapes }}
 
 - name: Ensure every server has a valid name and plain ENV_NAME keys
   ansible.builtin.assert:
@@ -66,6 +67,16 @@
   ansible.builtin.assert:
     that: item.release_command is none or item.release_command is match('^/usr/local/bin/[^/]+$')
     fail_msg: "{{ item.name }}: github_release installs command, which must be a file in /usr/local/bin"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# The pin is also part of the download path that root writes to.
+- name: Ensure a github_release pin is a sha256
+  ansible.builtin.assert:
+    that: item.release_sha is none or item.release_sha is match('^[0-9A-Fa-f]{64}$')
+    fail_msg: "{{ item.name }}: github_release sha256 must be 64 hex characters"
     quiet: true
   loop: "{{ mcp_servers_shapes }}"
   loop_control:

@@ -30,7 +30,7 @@ mcp_servers_platform: auto
 mcp_servers_claude_bin: ""
 
 # github_release: where assets come from (a test can point this at a local server) and
-# where they are kept, by server and version.
+# where they are kept, by server, version and sha256.
 mcp_servers_github_url: https://github.com
 mcp_servers_download_dir: /var/cache/mcp-servers
 

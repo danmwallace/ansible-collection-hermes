@@ -242,6 +242,11 @@
               member: fakesrv-linux-amd64
               sha256: "0000000000000000000000000000000000000000000000000000000000000000"
           expect: checksum
+        - entry:
+            name: shafmt
+            command: /usr/local/bin/fakesrv-fmt
+            github_release: { repo: danmwallace/fakesrv, version: v1.0.0, asset: fakesrv-linux-amd64.tar.gz, sha256: "../../../etc" }
+          expect: sha256 must be 64 hex characters
       loop_control:
         loop_var: case
         label: "{{ case.entry.name }}"
@@ -254,4 +259,51 @@
     - name: Check nothing was installed from the asset that failed its checksum
       ansible.builtin.assert:
         that: not mcp_servers_verify_badsha.stat.exists
+        quiet: true
+
+# A release re-pinned to a new sha256 under the same tag must install the new binary,
+# not one unpacked earlier from the old asset.
+- name: Verify a new sha256 for the same version installs the new binary
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Replace the stand-in asset under the same tag
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          d=/srv/release/danmwallace/fakesrv/releases/download/v1.0.0
+          printf '#!/usr/bin/bash\necho fakesrv v2\n' > /tmp/fakesrv/fakesrv-linux-amd64
+          tar -C /tmp/fakesrv -czf "$d/fakesrv-linux-amd64.tar.gz" fakesrv-linux-amd64
+          sha256sum "$d/fakesrv-linux-amd64.tar.gz" | cut -d' ' -f1
+        executable: /bin/bash
+      register: mcp_servers_verify_v2_sha
+      changed_when: true
+
+    - name: Apply the role with the new pin
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: registry
+        mcp_servers_github_url: http://127.0.0.1:8000
+        mcp_servers_list:
+          - name: reltest
+            command: /usr/local/bin/fakesrv
+            github_release:
+              repo: danmwallace/fakesrv
+              version: v1.0.0
+              asset: fakesrv-linux-amd64.tar.gz
+              member: fakesrv-linux-amd64
+              sha256: "{{ mcp_servers_verify_v2_sha.stdout }}"
+
+    - name: Run the installed binary
+      ansible.builtin.command:
+        cmd: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_v2_run
+      changed_when: false
+
+    - name: Check the new asset's binary was installed
+      ansible.builtin.assert:
+        that: mcp_servers_verify_v2_run.stdout == 'fakesrv v2'
+        fail_msg: "installed binary prints {{ mcp_servers_verify_v2_run.stdout }}"
         quiet: true

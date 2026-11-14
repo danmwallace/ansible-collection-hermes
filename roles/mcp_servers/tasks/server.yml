@@ -4,6 +4,10 @@
   ansible.builtin.include_tasks: npm.yml
   when: mcp_servers_server.npm_package is defined
 
+- name: Ensure the release binary is installed for {{ mcp_servers_server.name }}
+  ansible.builtin.include_tasks: github_release.yml
+  when: mcp_servers_server.github_release is defined
+
 - name: Ensure the file directories exist for {{ mcp_servers_server.name }}
   become: true
   become_user: "{{ mcp_servers_user }}"

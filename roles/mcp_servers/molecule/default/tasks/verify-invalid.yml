@@ -10,6 +10,7 @@
         mcp_servers_user: devreg
         mcp_servers_platform: "{{ case.platform | default('registry') }}"
         mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_github_url: http://127.0.0.1:8000
         mcp_servers_list: ["{{ case.entry }}"]
 
     - name: Fail because the role accepted the entry

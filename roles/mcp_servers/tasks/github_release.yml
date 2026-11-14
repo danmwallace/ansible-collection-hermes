@@ -1,0 +1,68 @@
+---
+# SPDX-License-Identifier: MIT
+# The server's binary comes from a GitHub release asset, checked against the pinned sha256
+# before anything is unpacked or installed: get_url fails on a mismatch and keeps nothing.
+# Root installs it to command, in /usr/local/bin (/var/usrlocal on bootc, which survives
+# image updates). Downloads are kept by server and version, so a new version downloads
+# again and an unchanged one does nothing.
+- name: Settle the release paths for {{ mcp_servers_server.name }}
+  ansible.builtin.set_fact:
+    mcp_servers_release: "{{ mcp_servers_server.github_release }}"
+    mcp_servers_release_dir: >-
+      {{ mcp_servers_download_dir }}/{{ mcp_servers_server.name }}/{{ mcp_servers_server.github_release.version }}
+
+- name: Ensure the download folders exist for {{ mcp_servers_server.name }}
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ mcp_servers_release_dir }}"
+    - "{{ mcp_servers_release_dir }}/x"
+  register: mcp_servers_release_dirs
+
+# A dry run on a host without this version created no folder and downloads nothing, so
+# the steps after this one have nothing to work on and are skipped.
+- name: Settle whether a dry run has anything to work on for {{ mcp_servers_server.name }}
+  ansible.builtin.set_fact:
+    mcp_servers_release_dry: "{{ ansible_check_mode and mcp_servers_release_dirs is changed }}"
+
+- name: Ensure the release asset is downloaded and matches its sha256 for {{ mcp_servers_server.name }}
+  become: true
+  ansible.builtin.get_url:
+    url: >-
+      {{ mcp_servers_github_url }}/{{ mcp_servers_release.repo }}/releases/download/{{
+      mcp_servers_release.version }}/{{ mcp_servers_release.asset }}
+    dest: "{{ mcp_servers_release_dir }}/{{ mcp_servers_release.asset }}"
+    checksum: "sha256:{{ mcp_servers_release.sha256 }}"
+    mode: "0644"
+  register: mcp_servers_release_download
+  when: not mcp_servers_release_dry
+
+- name: Ensure the binary is unpacked for {{ mcp_servers_server.name }}
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ mcp_servers_release_dir }}/{{ mcp_servers_release.asset }}"
+    dest: "{{ mcp_servers_release_dir }}/x"
+    remote_src: true
+    creates: "{{ mcp_servers_release_dir }}/x/{{ mcp_servers_release.member }}"
+  when:
+    - mcp_servers_release.member is defined
+    - not mcp_servers_release_dry
+    - not (ansible_check_mode and mcp_servers_release_download is changed)
+
+- name: Ensure the binary is installed for {{ mcp_servers_server.name }}
+  become: true
+  ansible.builtin.copy:
+    src: >-
+      {{ mcp_servers_release_dir ~ '/x/' ~ mcp_servers_release.member if mcp_servers_release.member is defined
+         else mcp_servers_release_dir ~ '/' ~ mcp_servers_release.asset }}
+    dest: "{{ mcp_servers_server.command }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - not mcp_servers_release_dry
+    - not (ansible_check_mode and mcp_servers_release_download is changed)

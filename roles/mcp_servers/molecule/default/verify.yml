@@ -58,6 +58,25 @@
         that: mcp_servers_verify_hdr.stdout == 'Bearer h3ader-s3cret'
         quiet: true
 
+    - name: Run the binary installed from the stand-in release
+      ansible.builtin.command:
+        cmd: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_rel
+      changed_when: false
+
+    - name: Read the installed binary's owner and mode
+      ansible.builtin.stat:
+        path: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_rel_stat
+
+    - name: Check the release binary works and is root's, 0755
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_rel.stdout == 'fakesrv ok'
+          - mcp_servers_verify_rel_stat.stat.pw_name == 'root'
+          - mcp_servers_verify_rel_stat.stat.mode == '0755'
+        quiet: true
+
     - name: Check the secret is nowhere in plain text and the files landed
       ansible.builtin.shell:
         cmd: |
@@ -213,6 +232,26 @@
         - { entry: { name: dc, command: /x, deny_tools: [t] }, platform: claude_cli, expect: needs the atomic-hyprland registry }
         - entry: { name: gr, command: /opt/x, github_release: { repo: a/b, version: v1, asset: x, sha256: "0" } }
           expect: /usr/local/bin
+        - entry:
+            name: badsha
+            command: /usr/local/bin/fakesrv-bad
+            github_release:
+              repo: danmwallace/fakesrv
+              version: v1.0.0
+              asset: fakesrv-linux-amd64.tar.gz
+              member: fakesrv-linux-amd64
+              sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+          expect: checksum
       loop_control:
         loop_var: case
         label: "{{ case.entry.name }}"
+
+    - name: Read the path the wrong-checksum release would have installed to
+      ansible.builtin.stat:
+        path: /usr/local/bin/fakesrv-bad
+      register: mcp_servers_verify_badsha
+
+    - name: Check nothing was installed from the asset that failed its checksum
+      ansible.builtin.assert:
+        that: not mcp_servers_verify_badsha.stat.exists
+        quiet: true

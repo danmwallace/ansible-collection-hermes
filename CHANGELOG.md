@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`Authorization`, `Proxy-Authorization`, `Cookie`, or one containing `token`, `secret`,
   `key`, `auth` or `pass`) are refused with a pointer to `header_secrets`. Before, such a
   value was written to the registry file at 0644 and synced into `~/.claude.json`.
+- `hermes_native`: profile directories are declared `0700`, the mode Hermes itself
+  sets on every start; with `0750` the task reported changed on each run.
 
 ## [1.10.0] - 2026-11-14
 

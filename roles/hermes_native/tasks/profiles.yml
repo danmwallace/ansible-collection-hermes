@@ -9,7 +9,9 @@
         state: directory
         owner: "{{ hermes_native_user }}"
         group: "{{ hermes_native_user }}"
-        mode: "0750"
+        # Hermes tightens its profile directories to 0700 on every start;
+        # declaring anything looser made this task report changed on each run.
+        mode: "0700"
       become: true
       loop: "{{ hermes_native_profiles }}"
       loop_control:

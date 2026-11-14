@@ -142,7 +142,7 @@ argument_specs:
               version:
                 type: str
                 required: true
-                description: The tag to install.
+                description: The git ref to install; a full commit SHA pins tighter than a tag, which can be moved.
           read_only_tools:
             type: list
             elements: str

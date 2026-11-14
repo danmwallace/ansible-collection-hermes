@@ -53,7 +53,7 @@ Each `mcp_servers_list` entry:
 | `type` | str | no | `http` (when left out) or `sse`; `url` servers only. |
 | `env` | dict | no | Plain environment for a stdio server. |
 | `secrets` | dict | no | `ENV_NAME: value` for a stdio server; stored as credential `<name>-<env_name>`. **Supply from vault.** |
-| `headers` | dict | no | Plain headers for a `url` server. |
+| `headers` | dict | no | Plain headers for a `url` server, written as they are. A name that usually carries a credential (`Authorization`, `Proxy-Authorization`, `Cookie`, or one containing `token`, `secret`, `key`, `auth` or `pass`, in any case) is refused: put it in `header_secrets`. |
 | `header_secrets` | dict | no | `Header-Name: value` for a `url` server (the whole value, e.g. `Bearer …`); stored as credential `<name>-hdr-<header>`. **Supply from vault.** |
 | `files` | list of dict | no | `[{src, dest, mode}]` non-secret files the server reads; `dest` may start with `~`, `mode` defaults to `0600`. |
 | `npm_package` | dict | no | `{name, version}`, installed globally (system npm, or Homebrew's node as the user). |
@@ -111,7 +111,8 @@ by `danmwallace.hermes.claude_code`).
 
 1. Checks every entry on a copy that holds only names, never secret values: a valid name
    and env keys, exactly one of `command` or `url`, `headers`/`header_secrets`/`type` only
-   on `url` servers, plain header names, no tool both read-only and denied, a
+   on `url` servers, plain header names, no credential-style name (such as `Authorization`)
+   in plain `headers`, no tool both read-only and denied, a
    `github_release` command in `/usr/local/bin` with a 64-hex-character sha256. (The
    argument spec also checks types and refuses unknown keys.)
 2. Looks up the user's home and settles the platform (`auto`: atomic-hyprland if
@@ -167,7 +168,7 @@ bash roles/mcp_servers/tests/check-verbose-log.sh  # the same at -v, failing if 
 
 The scenario covers both platforms, idempotence, credential decryption, the move to the
 registry, a `url` server with a header secret, a release served locally (including a wrong
-`sha256` and a re-pin under the same tag), a `uv_tool` from a local git tag, and ten
+`sha256` and a re-pin under the same tag), a `uv_tool` from a local git tag, and twelve
 entries the role must refuse.
 
 ## License

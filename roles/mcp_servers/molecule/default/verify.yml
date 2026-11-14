@@ -254,6 +254,8 @@
         - { entry: { name: hs, command: /x, header_secrets: { A: b } }, expect: header_secrets needs url }
         - { entry: { name: ro, command: /x, read_only_tools: [t], deny_tools: [t] }, expect: both read-only and denied }
         - { entry: { name: hn, url: "https://x", header_secrets: { "Bad Header": v } }, expect: header names }
+        - { entry: { name: hauth, url: "https://x", headers: { Authorization: "Bearer x" } }, expect: use header_secrets }
+        - { entry: { name: htok, url: "https://x", headers: { X-Api-Token: x } }, expect: use header_secrets }
         - { entry: { name: cli, url: "https://x" }, platform: claude_cli, expect: needs the atomic-hyprland registry }
         - { entry: { name: dc, command: /x, deny_tools: [t] }, platform: claude_cli, expect: needs the atomic-hyprland registry }
         - entry: { name: gr, command: /opt/x, github_release: { repo: a/b, version: v1, asset: x, sha256: "0" } }

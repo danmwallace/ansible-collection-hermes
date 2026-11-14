@@ -11,6 +11,7 @@
         'url_only': (s.headers is defined) or (s.header_secrets is defined) or (s.type is defined),
         'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list,
         'header_keys': ((s.headers | default({})) | list) + ((s.header_secrets | default({})) | list),
+        'plain_header_keys': (s.headers | default({})) | list,
         'read_only': s.read_only_tools | default([]), 'deny': s.deny_tools | default([]),
         'release_command': (s.command | default('') | string) if s.github_release is defined else none,
         'release_sha': (s.github_release.sha256 | default('') | string) if s.github_release is defined else none}) %}{% endfor %}{{ shapes }}
@@ -49,6 +50,20 @@
   ansible.builtin.assert:
     that: item.header_keys | reject('match', '^[A-Za-z0-9-]+$') | list | length == 0
     fail_msg: "{{ item.name }}: header names may hold only letters, digits and -"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# A plain header is written to mcp.d at 0644 and synced verbatim into ~/.claude.json, so
+# one that usually carries a credential must come through header_secrets instead.
+- name: Ensure plain headers carry no credentials
+  ansible.builtin.assert:
+    # search, not match: match is anchored at the start, so X-Api-Token would pass.
+    that: item.plain_header_keys | select('search', '(?i)^(proxy-)?authorization$|^cookie$|token|secret|key|auth|pass') | list | length == 0
+    fail_msg: >-
+      {{ item.name }}: {{ item.plain_header_keys | select('search', '(?i)^(proxy-)?authorization$|^cookie$|token|secret|key|auth|pass') | join(', ') }}
+      usually carries a credential; use header_secrets for it
     quiet: true
   loop: "{{ mcp_servers_shapes }}"
   loop_control:

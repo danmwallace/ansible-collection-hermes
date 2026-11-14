@@ -67,7 +67,10 @@ argument_specs:
               <name>-<env_name lowercased>.
           headers:
             type: dict
-            description: Plain HTTP headers for a url server (no secrets).
+            description: >-
+              Plain HTTP headers for a url server (no secrets). Names that usually carry a
+              credential (Authorization, Proxy-Authorization, Cookie, or containing token,
+              secret, key, auth or pass) are refused; use header_secrets.
           header_secrets:
             type: dict
             no_log: true

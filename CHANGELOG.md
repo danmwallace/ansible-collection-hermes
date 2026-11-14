@@ -5,6 +5,15 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - 2026-11-14
+
+### Fixed
+
+- `mcp_servers`: plain `headers` whose name usually carries a credential
+  (`Authorization`, `Proxy-Authorization`, `Cookie`, or one containing `token`, `secret`,
+  `key`, `auth` or `pass`) are refused with a pointer to `header_secrets`. Before, such a
+  value was written to the registry file at 0644 and synced into `~/.claude.json`.
+
 ## [1.10.0] - 2026-11-14
 
 ### Added

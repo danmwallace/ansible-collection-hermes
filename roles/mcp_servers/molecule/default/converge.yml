@@ -29,6 +29,10 @@
         asset: fakesrv-linux-amd64.tar.gz
         member: fakesrv-linux-amd64
         sha256: "{{ mcp_servers_converge_release_sha.content | b64decode | trim }}"
+    uv_server:
+      name: uvtest
+      command: /home/devreg/.local/bin/fakepkg-mcp
+      uv_tool: { source: "file:///srv/fakepkg", version: v0.1.0 }
   tasks:
     - name: Read the stand-in release's sha256 (prepare built it)
       ansible.builtin.slurp:
@@ -42,7 +46,7 @@
         mcp_servers_user: devreg
         mcp_servers_platform: registry
         mcp_servers_github_url: http://127.0.0.1:8000
-        mcp_servers_list: ["{{ test_server }}", "{{ web_server }}", "{{ release_server }}"]
+        mcp_servers_list: ["{{ test_server }}", "{{ web_server }}", "{{ release_server }}", "{{ uv_server }}"]
 
     - name: Apply mcp_servers in claude_cli mode (a host without the registry)
       ansible.builtin.include_role:

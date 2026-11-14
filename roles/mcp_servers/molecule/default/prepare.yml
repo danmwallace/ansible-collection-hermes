@@ -72,3 +72,37 @@
         host: 127.0.0.1
         port: 8000
         timeout: 30
+
+    # uv_tool: a one-module package in a local git repo, tagged v0.1.0. devreg owns it so
+    # git's safe.directory check lets uv (running as devreg) fetch it. Its build backend
+    # comes from PyPI, so this scenario needs network.
+    - name: Build a stand-in package repo for uv_tool
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          d=/srv/fakepkg
+          mkdir -p "$d"
+          cat > "$d/pyproject.toml" <<'TOML'
+          [build-system]
+          requires = ["setuptools>=61"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "fakepkg"
+          version = "0.1.0"
+
+          [project.scripts]
+          fakepkg-mcp = "fakepkg:main"
+
+          [tool.setuptools]
+          py-modules = ["fakepkg"]
+          TOML
+          sed -i 's/^          //' "$d/pyproject.toml"
+          printf 'def main():\n    print("fakepkg ok")\n' > "$d/fakepkg.py"
+          git -C "$d" init -q
+          git -C "$d" -c user.name=t -c user.email=t@example.invalid add -A
+          git -C "$d" -c user.name=t -c user.email=t@example.invalid commit -q -m init
+          git -C "$d" tag v0.1.0
+          chown -R devreg: "$d"
+        executable: /bin/bash
+        creates: /srv/fakepkg/.git

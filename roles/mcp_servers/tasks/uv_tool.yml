@@ -1,0 +1,67 @@
+---
+# SPDX-License-Identifier: MIT
+# The server is a Python package installed with `uv tool install` from a pinned git tag,
+# as the user (on bootc, uv tools live in the user's home, which survives image updates).
+# A stamp records the source and tag last installed: the install runs again only when they
+# change or the console script (command) is missing, so a second run changes nothing.
+- name: Look for uv
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: >-
+    {{ [mcp_servers_uv_bin] if mcp_servers_uv_bin else
+       [mcp_servers_home ~ '/.local/bin/uv', '/usr/bin/uv', '/home/linuxbrew/.linuxbrew/bin/uv'] }}
+  register: mcp_servers_uv_found
+
+- name: Settle uv, the stamp and the requested install for {{ mcp_servers_server.name }}
+  ansible.builtin.set_fact:
+    mcp_servers_uv: "{{ (mcp_servers_uv_found.results | selectattr('stat.exists') | map(attribute='item') | list + [''])[0] }}"
+    mcp_servers_uv_stamp: "{{ mcp_servers_home }}/.local/share/mcp-servers/uv-tool-{{ mcp_servers_server.name }}.stamp"
+    mcp_servers_uv_want: "{{ mcp_servers_server.uv_tool.source }}@{{ mcp_servers_server.uv_tool.version }}"
+
+- name: Stop when uv is missing for {{ mcp_servers_server.name }}
+  ansible.builtin.fail:
+    msg: "{{ mcp_servers_server.name }} needs uv for uv_tool; install it or set mcp_servers_uv_bin."
+  when: not mcp_servers_uv
+
+- name: Ensure the stamp folder exists for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.file:
+    path: "{{ mcp_servers_uv_stamp | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: Read what was last installed for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.slurp:
+    src: "{{ mcp_servers_uv_stamp }}"
+  register: mcp_servers_uv_have
+  failed_when: false
+
+- name: Check the console script for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.stat:
+    path: "{{ mcp_servers_server.command }}"
+  register: mcp_servers_uv_command
+
+- name: Ensure the package is installed with uv for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.command:
+    argv: ["{{ mcp_servers_uv }}", tool, install, --force, "git+{{ mcp_servers_uv_want }}"]
+  environment:
+    HOME: "{{ mcp_servers_home }}"
+  when: >-
+    not mcp_servers_uv_command.stat.exists
+    or (mcp_servers_uv_have.content | default('') | b64decode | trim) != mcp_servers_uv_want
+  changed_when: true
+
+- name: Ensure the stamp records the installed source and tag for {{ mcp_servers_server.name }}
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  ansible.builtin.copy:
+    dest: "{{ mcp_servers_uv_stamp }}"
+    content: "{{ mcp_servers_uv_want }}\n"
+    mode: "0644"

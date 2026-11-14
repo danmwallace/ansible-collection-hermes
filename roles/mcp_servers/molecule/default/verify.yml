@@ -77,6 +77,32 @@
           - mcp_servers_verify_rel_stat.stat.mode == '0755'
         quiet: true
 
+    - name: Run the uv tool's console script as its user
+      become: true
+      become_user: devreg
+      ansible.builtin.command:
+        cmd: /home/devreg/.local/bin/fakepkg-mcp
+      register: mcp_servers_verify_uv
+      changed_when: false
+
+    - name: Read the uv tool's stamp
+      ansible.builtin.slurp:
+        src: /home/devreg/.local/share/mcp-servers/uv-tool-uvtest.stamp
+      register: mcp_servers_verify_uv_stamp
+
+    - name: Read the console script's owner
+      ansible.builtin.stat:
+        path: /home/devreg/.local/bin/fakepkg-mcp
+      register: mcp_servers_verify_uv_stat
+
+    - name: Check the uv tool is installed for its user from the pinned tag
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_uv.stdout == 'fakepkg ok'
+          - (mcp_servers_verify_uv_stamp.content | b64decode | trim) == 'file:///srv/fakepkg@v0.1.0'
+          - mcp_servers_verify_uv_stat.stat.pw_name == 'devreg'
+        quiet: true
+
     - name: Check the secret is nowhere in plain text and the files landed
       ansible.builtin.shell:
         cmd: |

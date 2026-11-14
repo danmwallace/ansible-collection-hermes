@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # atomic-hyprland's registry: hypr-mcp syncs it into Claude Code and Gemini CLI, and the
 # desktop agent (Super+A, Fix it) reads it directly. Secrets are {"credential": N}
-# references that hypr-mcp run decrypts when the server starts.
+# references: hypr-mcp run decrypts env ones when the server starts, and hypr-mcp headers
+# (Claude Code's headersHelper) decrypts header ones when a url server connects.
 - name: Ensure the registry folder exists
   become: true
   become_user: "{{ mcp_servers_user }}"
@@ -24,10 +25,23 @@
               | zip((mcp_servers_server.secrets | default({})).keys()
                     | map('lower') | map('regex_replace', '^', mcp_servers_server.name ~ '-')
                     | map('community.general.dict_kv', 'credential'))) }}
+    mcp_servers_header_refs: >-
+      {{ dict((mcp_servers_server.header_secrets | default({})).keys()
+              | zip((mcp_servers_server.header_secrets | default({})).keys()
+                    | map('lower') | map('regex_replace', '^', mcp_servers_server.name ~ '-hdr-')
+                    | map('community.general.dict_kv', 'credential'))) }}
+    mcp_servers_headers: "{{ (mcp_servers_server.headers | default({})) | combine(mcp_servers_header_refs) }}"
+    mcp_servers_transport: >-
+      {{ ({'type': mcp_servers_server.type | default('http'), 'url': mcp_servers_server.url}
+          | combine({'headers': mcp_servers_headers} if mcp_servers_headers else {}))
+         if mcp_servers_server.url is defined else
+         {'command': mcp_servers_server.command, 'args': mcp_servers_server.args | default([]),
+          'env': (mcp_servers_server.env | default({})) | combine(mcp_servers_secret_refs)} }}
     mcp_servers_entry: >-
-      {{ {'command': mcp_servers_server.command, 'args': mcp_servers_server.args | default([]),
-          'env': (mcp_servers_server.env | default({})) | combine(mcp_servers_secret_refs)}
-         | combine({'readOnlyTools': mcp_servers_server.read_only_tools} if mcp_servers_server.read_only_tools is defined else {}) }}
+      {{ mcp_servers_transport
+         | combine({'readOnlyTools': mcp_servers_server.read_only_tools} if mcp_servers_server.read_only_tools is defined else {})
+         | combine({'denyTools': mcp_servers_server.deny_tools} if mcp_servers_server.deny_tools is defined else {})
+         | combine({'toolNotes': mcp_servers_server.tool_notes} if mcp_servers_server.tool_notes is defined else {}) }}
 
 # A host that moved here from Fedora KDE (claude_cli mode) still has Claude Code's entry,
 # the launcher and the old credentials; hypr-mcp leaves entries it didn't add alone.

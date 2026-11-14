@@ -12,14 +12,41 @@
       files:
         - { src: "{{ playbook_dir }}/files/routers.yaml", dest: "~/.testsrv/routers.yaml", mode: "0600" }
       read_only_tools: [list_things]
+    web_server:
+      name: webtest
+      url: "https://web.test/mcp"
+      headers: { X-Plain: "1" }
+      header_secrets: { Authorization: "Bearer h3ader-s3cret" }
+      deny_tools: [edit_thing]
+      tool_notes: { run_thing: "stop it in the UI" }
+      read_only_tools: [list_things]
+    release_server:
+      name: reltest
+      command: /usr/local/bin/fakesrv
+      github_release:
+        repo: danmwallace/fakesrv
+        version: v1.0.0
+        asset: fakesrv-linux-amd64.tar.gz
+        member: fakesrv-linux-amd64
+        sha256: "{{ mcp_servers_converge_release_sha.content | b64decode | trim }}"
+    uv_server:
+      name: uvtest
+      command: /home/devreg/.local/bin/fakepkg-mcp
+      uv_tool: { source: "file:///srv/fakepkg", version: v0.1.0 }
   tasks:
+    - name: Read the stand-in release's sha256 (prepare built it)
+      ansible.builtin.slurp:
+        src: /srv/release/sha256
+      register: mcp_servers_converge_release_sha
+
     - name: Apply mcp_servers in registry mode (atomic-hyprland)
       ansible.builtin.include_role:
         name: danmwallace.hermes.mcp_servers
       vars:
         mcp_servers_user: devreg
         mcp_servers_platform: registry
-        mcp_servers_list: ["{{ test_server }}"]
+        mcp_servers_github_url: http://127.0.0.1:8000
+        mcp_servers_list: ["{{ test_server }}", "{{ web_server }}", "{{ release_server }}", "{{ uv_server }}"]
 
     - name: Apply mcp_servers in claude_cli mode (a host without the registry)
       ansible.builtin.include_role:

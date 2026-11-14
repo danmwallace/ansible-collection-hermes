@@ -5,6 +5,33 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-11-14
+
+### Added
+
+- `mcp_servers`: `url` servers (with `type`, `headers` and `header_secrets`) in
+  registry mode. Each header secret is stored as the credential
+  `<name>-hdr-<header>` and referenced as `{"credential": ...}`, which
+  atomic-hyprland's `hypr-mcp headers` resolves at connect time, so no client
+  config holds it. Needs an atomic-hyprland image with `hypr-mcp headers`.
+- `mcp_servers`: `deny_tools` and `tool_notes`, written as the registry's
+  `denyTools` and `toolNotes`. `url` servers and `deny_tools` are refused on a
+  `claude_cli` host, before anything is written.
+- `mcp_servers`: `github_release: {repo, version, asset, sha256, member}`
+  installs `command` (in `/usr/local/bin`; `/var/usrlocal` on bootc) from a
+  release asset checked against its sha256. Downloads are kept by server,
+  version and sha256, so a new pin always unpacks fresh. New variables
+  `mcp_servers_github_url` and `mcp_servers_download_dir`.
+- `mcp_servers`: `uv_tool: {source, version}` runs `uv tool install` from a
+  pinned git ref as the user, again only when the ref changes or the script is
+  missing. New variable `mcp_servers_uv_bin`.
+- `mcp_servers`: `meta/argument_specs.yml`, and one check per rule with its own
+  message (exactly one of command or url; url-only keys; header names; no tool
+  both read-only and denied; a 64-hex sha256 and a `/usr/local/bin` command for
+  `github_release`). The molecule scenario covers each refusal, a local
+  release (including a wrong sha256 and a re-pin under the same tag), and a
+  local uv tool; it now needs network.
+
 ## [1.9.0] - 2026-11-12
 
 ### Added

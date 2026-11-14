@@ -23,11 +23,92 @@
             ROUTER_PASS: { credential: testsrv-router_pass }
           readOnlyTools: [list_things]
 
+    - name: Read the url server's registry entry
+      ansible.builtin.slurp:
+        src: /home/devreg/.config/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_web
+
+    - name: Check the url entry holds a header credential reference, deny and notes
+      ansible.builtin.assert:
+        that:
+          - (mcp_servers_verify_web.content | b64decode | from_json) == expected
+          - "'h3ader-s3cret' not in (mcp_servers_verify_web.content | b64decode)"
+        quiet: true
+      vars:
+        expected:
+          type: http
+          url: https://web.test/mcp
+          headers:
+            X-Plain: "1"
+            Authorization: { credential: webtest-hdr-authorization }
+          denyTools: [edit_thing]
+          toolNotes: { run_thing: stop it in the UI }
+          readOnlyTools: [list_things]
+
+    - name: Decrypt the header credential the way hypr-mcp headers does (no --name)
+      become: true
+      become_user: devreg
+      ansible.builtin.command:
+        cmd: systemd-creds --user decrypt /home/devreg/.config/atomic-hyprland/credentials/webtest-hdr-authorization.cred -
+      register: mcp_servers_verify_hdr
+      changed_when: false
+
+    - name: Check the header credential holds the whole header value
+      ansible.builtin.assert:
+        that: mcp_servers_verify_hdr.stdout == 'Bearer h3ader-s3cret'
+        quiet: true
+
+    - name: Run the binary installed from the stand-in release
+      ansible.builtin.command:
+        cmd: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_rel
+      changed_when: false
+
+    - name: Read the installed binary's owner and mode
+      ansible.builtin.stat:
+        path: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_rel_stat
+
+    - name: Check the release binary works and is root's, 0755
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_rel.stdout == 'fakesrv ok'
+          - mcp_servers_verify_rel_stat.stat.pw_name == 'root'
+          - mcp_servers_verify_rel_stat.stat.mode == '0755'
+        quiet: true
+
+    - name: Run the uv tool's console script as its user
+      become: true
+      become_user: devreg
+      ansible.builtin.command:
+        cmd: /home/devreg/.local/bin/fakepkg-mcp
+      register: mcp_servers_verify_uv
+      changed_when: false
+
+    - name: Read the uv tool's stamp
+      ansible.builtin.slurp:
+        src: /home/devreg/.local/share/mcp-servers/uv-tool-uvtest.stamp
+      register: mcp_servers_verify_uv_stamp
+
+    - name: Read the console script's owner
+      ansible.builtin.stat:
+        path: /home/devreg/.local/bin/fakepkg-mcp
+      register: mcp_servers_verify_uv_stat
+
+    - name: Check the uv tool is installed for its user from the pinned tag
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_uv.stdout == 'fakepkg ok'
+          - (mcp_servers_verify_uv_stamp.content | b64decode | trim) == 'file:///srv/fakepkg@v0.1.0'
+          - mcp_servers_verify_uv_stat.stat.pw_name == 'devreg'
+        quiet: true
+
     - name: Check the secret is nowhere in plain text and the files landed
       ansible.builtin.shell:
         cmd: |
           set -e
           ! grep -rqs s3cr3t-value /home/devreg /home/devcli --exclude=claude-calls.log
+          ! grep -rqs h3ader-s3cret /home/devreg /home/devcli --exclude=claude-calls.log
           test "$(stat -c '%a %U' /home/devreg/.config/atomic-hyprland/credentials/testsrv-router_pass.cred)" = "600 devreg"
           test "$(stat -c '%a %U' /home/devcli/.local/share/mcp-servers/credentials/testsrv-router_pass.cred)" = "600 devcli"
           test "$(stat -c '%a %U' /home/devreg/.testsrv/routers.yaml)" = "600 devreg"
@@ -159,3 +240,96 @@
           grep -q "mcp remove -s user movesrv" "$h/claude-calls.log"
         executable: /bin/bash
       changed_when: false
+
+# Entries the role must refuse, each with its own message, before it writes anything.
+- name: Verify invalid entries are refused
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Try each invalid entry
+      ansible.builtin.include_tasks: tasks/verify-invalid.yml
+      loop:
+        - { entry: { name: both, command: /x, url: "https://x" }, expect: exactly one of command or url }
+        - { entry: { name: neither }, expect: exactly one of command or url }
+        - { entry: { name: hs, command: /x, header_secrets: { A: b } }, expect: header_secrets needs url }
+        - { entry: { name: ro, command: /x, read_only_tools: [t], deny_tools: [t] }, expect: both read-only and denied }
+        - { entry: { name: hn, url: "https://x", header_secrets: { "Bad Header": v } }, expect: header names }
+        - { entry: { name: cli, url: "https://x" }, platform: claude_cli, expect: needs the atomic-hyprland registry }
+        - { entry: { name: dc, command: /x, deny_tools: [t] }, platform: claude_cli, expect: needs the atomic-hyprland registry }
+        - entry: { name: gr, command: /opt/x, github_release: { repo: a/b, version: v1, asset: x, sha256: "0" } }
+          expect: /usr/local/bin
+        - entry:
+            name: badsha
+            command: /usr/local/bin/fakesrv-bad
+            github_release:
+              repo: danmwallace/fakesrv
+              version: v1.0.0
+              asset: fakesrv-linux-amd64.tar.gz
+              member: fakesrv-linux-amd64
+              sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+          expect: checksum
+        - entry:
+            name: shafmt
+            command: /usr/local/bin/fakesrv-fmt
+            github_release: { repo: danmwallace/fakesrv, version: v1.0.0, asset: fakesrv-linux-amd64.tar.gz, sha256: "../../../etc" }
+          expect: sha256 must be 64 hex characters
+      loop_control:
+        loop_var: case
+        label: "{{ case.entry.name }}"
+
+    - name: Read the path the wrong-checksum release would have installed to
+      ansible.builtin.stat:
+        path: /usr/local/bin/fakesrv-bad
+      register: mcp_servers_verify_badsha
+
+    - name: Check nothing was installed from the asset that failed its checksum
+      ansible.builtin.assert:
+        that: not mcp_servers_verify_badsha.stat.exists
+        quiet: true
+
+# A release re-pinned to a new sha256 under the same tag must install the new binary,
+# not one unpacked earlier from the old asset.
+- name: Verify a new sha256 for the same version installs the new binary
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Replace the stand-in asset under the same tag
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          d=/srv/release/danmwallace/fakesrv/releases/download/v1.0.0
+          printf '#!/usr/bin/bash\necho fakesrv v2\n' > /tmp/fakesrv/fakesrv-linux-amd64
+          tar -C /tmp/fakesrv -czf "$d/fakesrv-linux-amd64.tar.gz" fakesrv-linux-amd64
+          sha256sum "$d/fakesrv-linux-amd64.tar.gz" | cut -d' ' -f1
+        executable: /bin/bash
+      register: mcp_servers_verify_v2_sha
+      changed_when: true
+
+    - name: Apply the role with the new pin
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: registry
+        mcp_servers_github_url: http://127.0.0.1:8000
+        mcp_servers_list:
+          - name: reltest
+            command: /usr/local/bin/fakesrv
+            github_release:
+              repo: danmwallace/fakesrv
+              version: v1.0.0
+              asset: fakesrv-linux-amd64.tar.gz
+              member: fakesrv-linux-amd64
+              sha256: "{{ mcp_servers_verify_v2_sha.stdout }}"
+
+    - name: Run the installed binary
+      ansible.builtin.command:
+        cmd: /usr/local/bin/fakesrv
+      register: mcp_servers_verify_v2_run
+      changed_when: false
+
+    - name: Check the new asset's binary was installed
+      ansible.builtin.assert:
+        that: mcp_servers_verify_v2_run.stdout == 'fakesrv v2'
+        fail_msg: "installed binary prints {{ mcp_servers_verify_v2_run.stdout }}"
+        quiet: true

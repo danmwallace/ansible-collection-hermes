@@ -1,24 +1,86 @@
 ---
 # SPDX-License-Identifier: MIT
-# Checked on a copy that has only the secrets' names: a loop item (and an assert's
-# result) is printed at -v, and the values come from ansible-vault.
-- name: Ensure every server entry is complete
+# Checked on a copy that has only the names of secrets and headers: a loop item (and an
+# assert's result) is printed at -v, and the values come from ansible-vault.
+- name: Settle a secret-free copy of the server entries
+  ansible.builtin.set_fact:
+    mcp_servers_shapes: >-
+      {% set shapes = [] %}{% for s in mcp_servers_list %}{% set _ = shapes.append({
+        'name': s.name | default('?') | string, 'command': s.command | default('') | string,
+        'url': s.url | default('') | string,
+        'url_only': (s.headers is defined) or (s.header_secrets is defined) or (s.type is defined),
+        'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list,
+        'header_keys': ((s.headers | default({})) | list) + ((s.header_secrets | default({})) | list),
+        'read_only': s.read_only_tools | default([]), 'deny': s.deny_tools | default([]),
+        'release_command': (s.command | default('') | string) if s.github_release is defined else none,
+        'release_sha': (s.github_release.sha256 | default('') | string) if s.github_release is defined else none}) %}{% endfor %}{{ shapes }}
+
+- name: Ensure every server has a valid name and plain ENV_NAME keys
   ansible.builtin.assert:
     that:
       - item.name is match('^[A-Za-z0-9._-]+$')
-      - item.command | length > 0
       - item.env_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
       - item.secret_keys | reject('match', '^[A-Za-z_][A-Za-z0-9_]*$') | list | length == 0
-    fail_msg: "mcp_servers_list entry {{ item.name }} needs a name, a command and plain ENV_NAME keys"
+    fail_msg: "mcp_servers_list entry {{ item.name }} needs a name and plain ENV_NAME keys"
     quiet: true
   loop: "{{ mcp_servers_shapes }}"
   loop_control:
     label: "{{ item.name }}"
-  vars:
-    mcp_servers_shapes: >-
-      {% set shapes = [] %}{% for s in mcp_servers_list %}{% set _ = shapes.append({
-        'name': s.name | default('?') | string, 'command': s.command | default('') | string,
-        'env_keys': (s.env | default({})) | list, 'secret_keys': (s.secrets | default({})) | list}) %}{% endfor %}{{ shapes }}
+
+- name: Ensure every server has exactly one of command or url
+  ansible.builtin.assert:
+    that: (item.command | length > 0) != (item.url | length > 0)
+    fail_msg: "{{ item.name }}: needs exactly one of command or url"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure headers, header_secrets and type are only on url servers
+  ansible.builtin.assert:
+    that: item.url | length > 0 or not item.url_only
+    fail_msg: "{{ item.name }}: header_secrets needs url (so do headers and type)"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure header names are plain
+  ansible.builtin.assert:
+    that: item.header_keys | reject('match', '^[A-Za-z0-9-]+$') | list | length == 0
+    fail_msg: "{{ item.name }}: header names may hold only letters, digits and -"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure no tool is both read-only and denied
+  ansible.builtin.assert:
+    that: item.read_only | intersect(item.deny) | length == 0
+    fail_msg: "{{ item.name }}: {{ item.read_only | intersect(item.deny) | join(', ') }} can't be both read-only and denied"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure a github_release installs into /usr/local/bin
+  ansible.builtin.assert:
+    that: item.release_command is none or item.release_command is match('^/usr/local/bin/[^/]+$')
+    fail_msg: "{{ item.name }}: github_release installs command, which must be a file in /usr/local/bin"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# The pin is also part of the download path that root writes to.
+- name: Ensure a github_release pin is a sha256
+  ansible.builtin.assert:
+    that: item.release_sha is none or item.release_sha is match('^[0-9A-Fa-f]{64}$')
+    fail_msg: "{{ item.name }}: github_release sha256 must be 64 hex characters"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
 
 - name: Look up the user's home directory
   ansible.builtin.getent:
@@ -42,6 +104,17 @@
   vars:
     mcp_servers_home_dir: "{{ ansible_facts.getent_passwd[mcp_servers_user][4] }}"
     mcp_servers_is_atomic: "{{ mcp_servers_platform == 'auto' and (mcp_servers_atomic.results | map(attribute='stat.exists') | min) }}"
+
+# A url server or a deny list on a claude_cli host would be dropped without a word; a
+# dropped deny is a tool the operator meant to forbid. Refused before anything is written.
+- name: Ensure url servers and deny_tools are only used with the registry
+  ansible.builtin.assert:
+    that: mcp_servers_mode == 'registry' or (item.url | length == 0 and item.deny | length == 0)
+    fail_msg: "{{ item.name }} needs the atomic-hyprland registry for url and deny_tools; this host is {{ mcp_servers_mode }}"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
 
 - name: Ensure the credential directory exists and is private
   become: true

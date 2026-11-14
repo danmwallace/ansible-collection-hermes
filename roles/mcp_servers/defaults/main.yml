@@ -9,8 +9,17 @@ mcp_servers_user: "{{ ansible_facts['user_id'] }}"
 #   env:             plain environment (no secrets)
 #   secrets:         ENV_NAME: value (from ansible-vault); stored as systemd-creds --user credentials
 #   files:           [{src, dest, mode}] non-secret files the server reads (dest may start with ~)
+#   url, type:       instead of command: an HTTP (or SSE) server; registry mode only
+#   headers:         plain headers for a url server
+#   header_secrets:  Header-Name: value (from ansible-vault); credential <name>-hdr-<header>
 #   npm_package:     optional {name, version} installed globally
+#   github_release:  optional {repo, version, asset, sha256, member} installed to command
+#                    (under /usr/local/bin)
+#   uv_tool:         optional {source, version}: uv tool install git+<source>@<version>
 #   read_only_tools: optional; tools that run without an approval card on atomic-hyprland
+#   deny_tools:      optional; tools no agent or client may call (registry mode only)
+#   tool_notes:      optional; tool -> how to undo it, shown on its approval card
+# meta/argument_specs.yml has the full shape.
 mcp_servers_list: []
 
 # auto: atomic-hyprland (bootc with hypr-mcp) -> registry, anything else -> claude_cli
@@ -19,3 +28,12 @@ mcp_servers_platform: auto
 # claude_cli mode: the claude binary. Empty means the first of ~/.local/bin/claude,
 # /usr/bin/claude, /usr/local/bin/claude that exists.
 mcp_servers_claude_bin: ""
+
+# github_release: where assets come from (a test can point this at a local server) and
+# where they are kept, by server, version and sha256.
+mcp_servers_github_url: https://github.com
+mcp_servers_download_dir: /var/cache/mcp-servers
+
+# uv_tool: the uv binary. Empty means the first of ~/.local/bin/uv, /usr/bin/uv,
+# /home/linuxbrew/.linuxbrew/bin/uv that exists.
+mcp_servers_uv_bin: ""

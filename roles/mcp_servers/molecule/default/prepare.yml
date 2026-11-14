@@ -46,3 +46,63 @@
         mode: "0600"
         content: '{"oauthAccount": {"emailAddress": "pii-sentinel@example.invalid"}}'
         force: false
+
+    # github_release: a stand-in release (a tar.gz holding one binary) served over HTTP
+    # the way github.com serves assets; converge reads its sha256 from /srv/release/sha256.
+    - name: Build a stand-in GitHub release
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          d=/srv/release/danmwallace/fakesrv/releases/download/v1.0.0
+          mkdir -p "$d" /tmp/fakesrv
+          printf '#!/usr/bin/bash\necho fakesrv ok\n' > /tmp/fakesrv/fakesrv-linux-amd64
+          chmod 0755 /tmp/fakesrv/fakesrv-linux-amd64
+          tar -C /tmp/fakesrv -czf "$d/fakesrv-linux-amd64.tar.gz" fakesrv-linux-amd64
+          sha256sum "$d/fakesrv-linux-amd64.tar.gz" | cut -d' ' -f1 > /srv/release/sha256
+        executable: /bin/bash
+        creates: /srv/release/sha256
+
+    - name: Serve the stand-in release on 127.0.0.1:8000
+      ansible.builtin.command:
+        cmd: systemd-run --unit=fakerel python3 -m http.server 8000 --bind 127.0.0.1 --directory /srv/release
+      changed_when: true
+
+    - name: Wait for the release server
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 8000
+        timeout: 30
+
+    # uv_tool: a one-module package in a local git repo, tagged v0.1.0. devreg owns it so
+    # git's safe.directory check lets uv (running as devreg) fetch it. Its build backend
+    # comes from PyPI, so this scenario needs network.
+    - name: Build a stand-in package repo for uv_tool
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          d=/srv/fakepkg
+          mkdir -p "$d"
+          cat > "$d/pyproject.toml" <<'TOML'
+          [build-system]
+          requires = ["setuptools>=61"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "fakepkg"
+          version = "0.1.0"
+
+          [project.scripts]
+          fakepkg-mcp = "fakepkg:main"
+
+          [tool.setuptools]
+          py-modules = ["fakepkg"]
+          TOML
+          sed -i 's/^          //' "$d/pyproject.toml"
+          printf 'def main():\n    print("fakepkg ok")\n' > "$d/fakepkg.py"
+          git -C "$d" init -q
+          git -C "$d" -c user.name=t -c user.email=t@example.invalid add -A
+          git -C "$d" -c user.name=t -c user.email=t@example.invalid commit -q -m init
+          git -C "$d" tag v0.1.0
+          chown -R devreg: "$d"
+        executable: /bin/bash
+        creates: /srv/fakepkg/.git

@@ -1,0 +1,170 @@
+# SPDX-License-Identifier: MIT
+---
+argument_specs:
+  main:
+    short_description: Per-machine MCP servers for Claude Code, with secrets as systemd-creds user credentials.
+    description:
+      - Sets up each server in mcp_servers_list for one user. On atomic-hyprland (bootc with
+        hypr-mcp) each server is a drop-in in ~/.config/atomic-hyprland/mcp.d/, which hypr-mcp
+        syncs into Claude Code and Gemini CLI and the desktop agent reads. Anywhere else it is
+        registered with `claude mcp add-json -s user` behind a generated launcher.
+      - Secrets (env secrets and header secrets) are stored only as `systemd-creds --user`
+        credentials, written as the user, and referenced by name; no client config holds them.
+      - Optionally installs the server first, from npm, a sha256-pinned GitHub release, or
+        `uv tool install` from a pinned git tag.
+    author:
+      - Dan Wallace
+    options:
+      mcp_servers_user:
+        type: str
+        default: "{{ ansible_facts['user_id'] }}"
+        description: The account whose MCP servers, credentials and Claude Code config these are.
+      mcp_servers_platform:
+        type: str
+        default: auto
+        choices: [auto, registry, claude_cli]
+        description: >-
+          auto picks registry on atomic-hyprland (/run/ostree-booted and /usr/bin/hypr-mcp
+          present) and claude_cli anywhere else.
+      mcp_servers_claude_bin:
+        type: str
+        default: ""
+        description: >-
+          claude_cli mode only: the claude binary. Empty means the first of ~/.local/bin/claude,
+          /usr/bin/claude, /usr/local/bin/claude that exists.
+      mcp_servers_list:
+        type: list
+        elements: dict
+        default: []
+        description: One entry per server.
+        options:
+          name:
+            type: str
+            required: true
+            description: The server's name (registry file stem, Claude Code server name). Letters, digits, ., _ and - only.
+          command:
+            type: str
+            description: Absolute path of a stdio server. Exactly one of command or url.
+          args:
+            type: list
+            elements: str
+            description: Arguments for command.
+          url:
+            type: str
+            description: URL of an HTTP or SSE server. Exactly one of command or url. Needs the atomic-hyprland registry.
+          type:
+            type: str
+            choices: [http, sse]
+            description: Transport of a url server; http when left out.
+          env:
+            type: dict
+            description: Plain environment for a stdio server (no secrets).
+          secrets:
+            type: dict
+            no_log: true
+            description: >-
+              ENV_NAME -> value (from ansible-vault). Stored as the credential
+              <name>-<env_name lowercased>.
+          headers:
+            type: dict
+            description: Plain HTTP headers for a url server (no secrets).
+          header_secrets:
+            type: dict
+            no_log: true
+            description: >-
+              Header-Name -> value (from ansible-vault), url servers only. Stored as the credential
+              <name>-hdr-<header lowercased>; Claude Code fetches it at connect time through
+              hypr-mcp's headersHelper.
+          files:
+            type: list
+            elements: dict
+            description: Non-secret files the server reads.
+            options:
+              src:
+                type: str
+                required: true
+                description: Path on the control node.
+              dest:
+                type: str
+                required: true
+                description: Path on the host; may start with ~ for the user's home.
+              mode:
+                type: str
+                default: "0600"
+                description: File mode.
+          npm_package:
+            type: dict
+            description: Installs an npm package globally before the server is set up.
+            options:
+              name:
+                type: str
+                required: true
+                description: Package name.
+              version:
+                type: str
+                required: true
+                description: Exact version.
+          github_release:
+            type: dict
+            description: >-
+              Installs command from a GitHub release asset, checked against its sha256. command
+              must be under /usr/local/bin (/var/usrlocal on bootc, which survives image updates).
+            options:
+              repo:
+                type: str
+                required: true
+                description: owner/name.
+              version:
+                type: str
+                required: true
+                description: The release tag, e.g. v1.0.0.
+              asset:
+                type: str
+                required: true
+                description: The asset's file name.
+              sha256:
+                type: str
+                required: true
+                description: The asset's sha256 (of the archive when it is one).
+              member:
+                type: str
+                description: The binary's path inside a .tar.gz, .tgz or .zip asset; leave out for a bare binary.
+          uv_tool:
+            type: dict
+            description: >-
+              Installs a Python package with `uv tool install` from a pinned git tag, as the user.
+              command is then the console script, e.g. /home/<user>/.local/bin/<script>.
+            options:
+              source:
+                type: str
+                required: true
+                description: The git URL without git+, e.g. ssh://git@github.com/owner/repo.
+              version:
+                type: str
+                required: true
+                description: The tag to install.
+          read_only_tools:
+            type: list
+            elements: str
+            description: Tools that run without an approval card on atomic-hyprland (readOnlyTools).
+          deny_tools:
+            type: list
+            elements: str
+            description: Tools no agent or client may call (denyTools). Needs the atomic-hyprland registry.
+          tool_notes:
+            type: dict
+            description: Tool -> how to undo it, shown on its approval card (toolNotes).
+      mcp_servers_github_url:
+        type: str
+        default: https://github.com
+        description: Base URL github_release downloads from (a test can point it at a local server).
+      mcp_servers_download_dir:
+        type: str
+        default: /var/cache/mcp-servers
+        description: Where github_release keeps downloaded assets, by server and version.
+      mcp_servers_uv_bin:
+        type: str
+        default: ""
+        description: >-
+          uv for uv_tool. Empty means the first of ~/.local/bin/uv, /usr/bin/uv,
+          /home/linuxbrew/.linuxbrew/bin/uv that exists.

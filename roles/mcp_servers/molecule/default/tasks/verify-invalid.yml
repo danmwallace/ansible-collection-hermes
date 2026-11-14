@@ -1,0 +1,25 @@
+---
+# One invalid mcp_servers_list entry (case.entry): the role must refuse it with a
+# message containing case.expect, before writing anything.
+- name: Expect the role to refuse {{ case.entry.name | default('?') }}
+  block:
+    - name: Include mcp_servers with the invalid entry
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: "{{ case.platform | default('registry') }}"
+        mcp_servers_claude_bin: /usr/local/bin/claude
+        mcp_servers_list: ["{{ case.entry }}"]
+
+    - name: Fail because the role accepted the entry
+      ansible.builtin.fail:
+        msg: should-have-failed
+  rescue:
+    - name: Check the role refused it for the expected reason
+      ansible.builtin.assert:
+        that:
+          - "'should-have-failed' not in (ansible_failed_result.msg | default(''))"
+          - case.expect in (ansible_failed_result | to_json)
+        fail_msg: "{{ case.entry.name | default('?') }}: expected '{{ case.expect }}', got {{ ansible_failed_result.msg | default('') }}"
+        quiet: true

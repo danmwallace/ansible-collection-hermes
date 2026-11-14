@@ -159,3 +159,24 @@
           grep -q "mcp remove -s user movesrv" "$h/claude-calls.log"
         executable: /bin/bash
       changed_when: false
+
+# Entries the role must refuse, each with its own message, before it writes anything.
+- name: Verify invalid entries are refused
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Try each invalid entry
+      ansible.builtin.include_tasks: tasks/verify-invalid.yml
+      loop:
+        - { entry: { name: both, command: /x, url: "https://x" }, expect: exactly one of command or url }
+        - { entry: { name: neither }, expect: exactly one of command or url }
+        - { entry: { name: hs, command: /x, header_secrets: { A: b } }, expect: header_secrets needs url }
+        - { entry: { name: ro, command: /x, read_only_tools: [t], deny_tools: [t] }, expect: both read-only and denied }
+        - { entry: { name: hn, url: "https://x", header_secrets: { "Bad Header": v } }, expect: header names }
+        - { entry: { name: cli, url: "https://x" }, platform: claude_cli, expect: needs the atomic-hyprland registry }
+        - { entry: { name: dc, command: /x, deny_tools: [t] }, platform: claude_cli, expect: needs the atomic-hyprland registry }
+        - entry: { name: gr, command: /opt/x, github_release: { repo: a/b, version: v1, asset: x, sha256: "0" } }
+          expect: /usr/local/bin
+      loop_control:
+        loop_var: case
+        label: "{{ case.entry.name }}"

@@ -23,11 +23,47 @@
             ROUTER_PASS: { credential: testsrv-router_pass }
           readOnlyTools: [list_things]
 
+    - name: Read the url server's registry entry
+      ansible.builtin.slurp:
+        src: /home/devreg/.config/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_web
+
+    - name: Check the url entry holds a header credential reference, deny and notes
+      ansible.builtin.assert:
+        that:
+          - (mcp_servers_verify_web.content | b64decode | from_json) == expected
+          - "'h3ader-s3cret' not in (mcp_servers_verify_web.content | b64decode)"
+        quiet: true
+      vars:
+        expected:
+          type: http
+          url: https://web.test/mcp
+          headers:
+            X-Plain: "1"
+            Authorization: { credential: webtest-hdr-authorization }
+          denyTools: [edit_thing]
+          toolNotes: { run_thing: stop it in the UI }
+          readOnlyTools: [list_things]
+
+    - name: Decrypt the header credential the way hypr-mcp headers does (no --name)
+      become: true
+      become_user: devreg
+      ansible.builtin.command:
+        cmd: systemd-creds --user decrypt /home/devreg/.config/atomic-hyprland/credentials/webtest-hdr-authorization.cred -
+      register: mcp_servers_verify_hdr
+      changed_when: false
+
+    - name: Check the header credential holds the whole header value
+      ansible.builtin.assert:
+        that: mcp_servers_verify_hdr.stdout == 'Bearer h3ader-s3cret'
+        quiet: true
+
     - name: Check the secret is nowhere in plain text and the files landed
       ansible.builtin.shell:
         cmd: |
           set -e
           ! grep -rqs s3cr3t-value /home/devreg /home/devcli --exclude=claude-calls.log
+          ! grep -rqs h3ader-s3cret /home/devreg /home/devcli --exclude=claude-calls.log
           test "$(stat -c '%a %U' /home/devreg/.config/atomic-hyprland/credentials/testsrv-router_pass.cred)" = "600 devreg"
           test "$(stat -c '%a %U' /home/devcli/.local/share/mcp-servers/credentials/testsrv-router_pass.cred)" = "600 devcli"
           test "$(stat -c '%a %U' /home/devreg/.testsrv/routers.yaml)" = "600 devreg"

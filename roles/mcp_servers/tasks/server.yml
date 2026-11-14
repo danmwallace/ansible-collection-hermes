@@ -32,6 +32,18 @@
   loop_control:
     loop_var: mcp_servers_secret
     label: "{{ mcp_servers_server.name }}-{{ mcp_servers_secret.key | lower }}"
+  vars:
+    mcp_servers_cred_name: "{{ mcp_servers_server.name }}-{{ mcp_servers_secret.key | lower }}"
+  no_log: true  # each item is a secret
+
+- name: Ensure the header secrets are stored as credentials for {{ mcp_servers_server.name }}
+  ansible.builtin.include_tasks: credential.yml
+  loop: "{{ mcp_servers_server.header_secrets | default({}) | dict2items }}"
+  loop_control:
+    loop_var: mcp_servers_secret
+    label: "{{ mcp_servers_server.name }}-hdr-{{ mcp_servers_secret.key | lower }}"
+  vars:
+    mcp_servers_cred_name: "{{ mcp_servers_server.name }}-hdr-{{ mcp_servers_secret.key | lower }}"
   no_log: true  # each item is a secret
 
 - name: Ensure Claude Code or the registry knows {{ mcp_servers_server.name }}

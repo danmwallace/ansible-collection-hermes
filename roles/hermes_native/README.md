@@ -143,7 +143,13 @@ env file, config.yaml, or the respective systemd unit changes.
   - A profile with no key of its own refuses every request rather than accept the default key.
   - A key shorter than 16 characters is ignored, which is why the role refuses one.
   - Use this for a client that should reach one profile only, such as a desktop agent with its own revocable key.
-  - The molecule scenario `profiles` (`molecule test -s profiles`) checks the `.env` line, its mode, that other lines are kept, and that a short key fails without being shown.
+  - **Revoking or rotating:** removing `api_server_key` from the inventory leaves the line in place, so the old key keeps working. To revoke, delete the `API_SERVER_KEY=` line from `~/profiles/<name>/.env` and restart `hermes-agent`; to rotate, set a new value and run the role. Runs started under the old key are tied to it, so after a rotation they answer 404.
+  - **Written as the hermes user:** the profile folder, `config.yaml` and `.env` are all written as the hermes user, never root. The folder belongs to the agent, so a symlink it plants there can't redirect a root write or chown.
+  - The molecule scenario `profiles` (`molecule test -s profiles`) checks:
+    - the `.env` line and its mode, and that other lines are kept;
+    - that a short key fails without being shown;
+    - that a planted symlink, on `.env` or on the profile folder, leaves the root-owned target untouched;
+    - that the key appears nowhere in `-vvv` output.
 - **Platform-specific**: the role targets Fedora only. `dnf` tasks will fail on Debian/Ubuntu
   hosts.
 

@@ -5,6 +5,17 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-11-15
+
+### Added
+
+- `hermes_native`: `hermes_native_profiles[].api_server_key`, a profile's own API key.
+  - It's written as the `API_SERVER_KEY` line of `~/profiles/<name>/.env` (mode 0600, `no_log`). Other lines in that file are kept.
+  - Hermes v0.23 accepts the key only on `/p/<name>/`, so a client can hold a dedicated, revocable key for one profile.
+  - Keys under 16 characters are refused, without showing the key.
+  - `hermes_native_profiles` is now declared in `argument_specs.yml`.
+  - New molecule scenario `profiles`.
+
 ## [1.10.1] - 2026-11-14
 
 ### Fixed

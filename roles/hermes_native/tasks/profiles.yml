@@ -24,3 +24,34 @@
       loop_control:
         loop_var: _profile
         label: "{{ _profile.name }}"
+
+    # One assert over all profiles, without a loop: a looped failure would echo the item,
+    # key included, into the output.
+    - name: Check each profile API key is long enough for Hermes
+      ansible.builtin.assert:
+        that: >-
+          hermes_native_profiles | selectattr('api_server_key', 'defined')
+          | map(attribute='api_server_key') | map('length') | reject('ge', 16) | list | length == 0
+        fail_msg: >-
+          Every hermes_native_profiles[].api_server_key must be at least 16 characters;
+          Hermes refuses a shorter profile key.
+        quiet: true
+
+    # Only this line is managed, so any other key Hermes (or a person) writes to the profile's
+    # .env is kept. Hermes reads it as the profile's own key and refuses that profile any other.
+    - name: Ensure each profile with its own API key has it in its .env
+      ansible.builtin.lineinfile:
+        path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/.env"
+        regexp: '^API_SERVER_KEY='
+        line: "API_SERVER_KEY={{ _profile.api_server_key }}"
+        create: true
+        owner: "{{ hermes_native_user }}"
+        group: "{{ hermes_native_user }}"
+        mode: "0600"
+      become: true
+      loop: "{{ hermes_native_profiles | selectattr('api_server_key', 'defined') | list }}"
+      loop_control:
+        loop_var: _profile
+        label: "{{ _profile.name }}"
+      no_log: true
+      notify: Restart hermes-agent service

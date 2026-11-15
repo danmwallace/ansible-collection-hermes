@@ -1,0 +1,54 @@
+---
+- name: Verify
+  hosts: molecule
+  gather_facts: false
+  tasks:
+    - name: Read the profile .env
+      ansible.builtin.slurp:
+        src: /home/hermes/profiles/desktop/.env
+      register: hermes_native_verify_env
+
+    - name: Read the profile .env attributes
+      ansible.builtin.stat:
+        path: /home/hermes/profiles/desktop/.env
+      register: hermes_native_verify_stat
+
+    - name: Check the key line was added and the other line kept
+      ansible.builtin.assert:
+        that:
+          - (hermes_native_verify_env.content | b64decode).splitlines() | sort == ['API_SERVER_KEY=molecule-key-0123456789abcdef', 'OTHER=keep']
+          - hermes_native_verify_stat.stat.mode == '0600'
+          - hermes_native_verify_stat.stat.pw_name == 'hermes'
+        quiet: true
+
+    - name: Read the profile config
+      ansible.builtin.slurp:
+        src: /home/hermes/profiles/desktop/config.yaml
+      register: hermes_native_verify_config
+
+    - name: Check approvals are manual
+      ansible.builtin.assert:
+        that: (hermes_native_verify_config.content | b64decode | from_yaml).approvals.mode == 'manual'
+        quiet: true
+
+    - name: Apply a key that is too short
+      block:
+        - name: Run the profile tasks with a short key
+          ansible.builtin.include_role:
+            name: danmwallace.hermes.hermes_native
+            tasks_from: profiles.yml
+          vars:
+            hermes_native_user: hermes
+            hermes_native_profiles:
+              - name: desktop
+                api_server_key: tooshortkey
+        - name: Fail, because the short key was accepted
+          ansible.builtin.fail:
+            msg: a key under 16 characters was accepted
+      rescue:
+        - name: Check the failure is the length check and doesn't show the key
+          ansible.builtin.assert:
+            that:
+              - ansible_failed_result.msg is search('16')
+              - "'tooshortkey' not in (ansible_failed_result | to_json)"
+            quiet: true

@@ -34,6 +34,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | --- | --- | --- | --- | --- |
 | `hermes_native_anthropic_api_key` | str | **yes** | `""` | Anthropic API key (`ANTHROPIC_API_KEY`). **Supply from vault.** |
 | `hermes_native_api_server_key` | str | **yes** | `""` | API authentication key (min 8 chars) for the OpenAI-compatible endpoint. **Supply from vault.** |
+| `hermes_native_profiles` | list of dict | no | `[]` | Additional profiles, served at `/p/<name>/`. Each entry has `name` (required), `config` (merged into `~/profiles/<name>/config.yaml`), and an optional `api_server_key`: the profile's own key, at least 16 characters, written to `~/profiles/<name>/.env`. **Supply `api_server_key` from vault.** |
 | `hermes_native_dashboard_password` | str | **yes** | `""` | Basic auth password for the web dashboard. **Supply from vault.** |
 | `hermes_native_gh_token` | str | **yes** | `""` | Fine-grained GitHub PAT for `gh` CLI auth. **Supply from vault.** |
 | `hermes_native_user` | str | no | `hermes` | OS user the agent runs as. |
@@ -110,6 +111,11 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
 9. **Configure git and gh**: sets `user.name`/`user.email` globally for the hermes user,
    configures an HTTPS credential helper backed by `gh auth token`, and authenticates `gh`
    with `hermes_native_gh_token`.
+10. **Provision profiles**: for each `hermes_native_profiles` entry, creates
+    `~/profiles/<name>/` (0700) and merges its `config` into `config.yaml`. For entries with
+    `api_server_key`, it checks that each key is at least 16 characters, then makes sure the
+    line `API_SERVER_KEY=<key>` is in `~/profiles/<name>/.env` (0600, `no_log`). Only that
+    line is managed.
 
 `Restart hermes-agent service` and `Restart hermes-dashboard service` handlers fire when the
 env file, config.yaml, or the respective systemd unit changes.
@@ -133,6 +139,11 @@ env file, config.yaml, or the respective systemd unit changes.
   the next run, and a key removed from Ansible stays on the host until removed by hand. The
   legacy `model.model` key written by releases up to 1.7.0 is dropped on the first run
   because Hermes reads it in preference to `model.default`.
+- **A profile's own key**: Hermes v0.23 serves each profile at `/p/<name>/` and accepts only that profile's `API_SERVER_KEY`, read from its `.env`.
+  - A profile with no key of its own refuses every request rather than accept the default key.
+  - A key shorter than 16 characters is ignored, which is why the role refuses one.
+  - Use this for a client that should reach one profile only, such as a desktop agent with its own revocable key.
+  - The molecule scenario `profiles` (`molecule test -s profiles`) checks the `.env` line, its mode, that other lines are kept, and that a short key fails without being shown.
 - **Platform-specific**: the role targets Fedora only. `dnf` tasks will fail on Debian/Ubuntu
   hosts.
 

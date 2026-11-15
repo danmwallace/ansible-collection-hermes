@@ -67,6 +67,28 @@ argument_specs:
         default: ""
         no_log: true
         description: API authentication key (minimum 8 characters). Supply from vault.
+      hermes_native_profiles:
+        type: list
+        elements: dict
+        default: []
+        description: >
+          Additional Hermes profiles, served on the same listener at /p/<name>/. Each config is
+          merged into ~/profiles/<name>/config.yaml.
+        options:
+          name:
+            type: str
+            required: true
+            description: The profile directory name.
+          config:
+            type: dict
+            description: Keys merged into the profile's config.yaml (Ansible owns the keys declared here).
+          api_server_key:
+            type: str
+            no_log: true
+            description: >
+              The profile's own API_SERVER_KEY, written to ~/profiles/<name>/.env (mode 0600; only
+              that line is managed). At least 16 characters. Hermes accepts it only on
+              /p/<name>/ and refuses that profile any other key. Supply from vault.
       hermes_native_dashboard_enabled:
         type: bool
         default: true

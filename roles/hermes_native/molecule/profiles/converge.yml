@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Apply the profile tasks of hermes_native with a profile key
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.hermes_native
+        tasks_from: profiles.yml
+      vars:
+        hermes_native_user: hermes
+        hermes_native_profiles:
+          - name: desktop
+            config:
+              approvals:
+                mode: manual
+            api_server_key: molecule-key-0123456789abcdef

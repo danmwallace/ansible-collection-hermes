@@ -101,6 +101,8 @@ hermes_native_api_server_traefik_hostname: ""
 # Each entry is a dict with:
 #   name:   profile directory name (e.g. "coding")
 #   config: mapping rendered verbatim into ~/profiles/<name>/config.yaml
+#   api_server_key: optional; the profile's own API_SERVER_KEY in ~/profiles/<name>/.env
+#                   (at least 16 characters; supply from vault)
 # The default profile config.yaml is managed by the config.yaml.j2 template
 # and is not affected by this list.
 hermes_native_profiles: []

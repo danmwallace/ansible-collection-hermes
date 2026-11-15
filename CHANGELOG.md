@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - It's written as the `API_SERVER_KEY` line of `~/profiles/<name>/.env` (mode 0600, `no_log`). Other lines in that file are kept.
   - Hermes v0.23 accepts the key only on `/p/<name>/`, so a client can hold a dedicated, revocable key for one profile.
   - Keys under 16 characters are refused, without showing the key.
+  - The `.env` is written as `hermes_native_user`, not root, so a symlink the agent plants there can't send a root write (and a chown) to another file. The other profile loops never see the key.
   - `hermes_native_profiles` is now declared in `argument_specs.yml`.
   - New molecule scenario `profiles`.
 

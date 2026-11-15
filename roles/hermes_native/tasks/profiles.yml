@@ -2,7 +2,13 @@
 ---
 - name: Provision additional Hermes profiles
   when: hermes_native_profiles | length > 0
+  vars:
+    _hermes_native_profiles_public: >-
+      {{ hermes_native_profiles | map('dict2items') | map('rejectattr', 'key', 'eq', 'api_server_key')
+         | map('items2dict') | list }}
   block:
+    # These two loops see the profiles without api_server_key, so no result (verbose or
+    # failed) can carry a key; only the key task below gets it, under no_log.
     - name: Ensure profile directories exist
       ansible.builtin.file:
         path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}"
@@ -13,14 +19,14 @@
         # declaring anything looser made this task report changed on each run.
         mode: "0700"
       become: true
-      loop: "{{ hermes_native_profiles }}"
+      loop: "{{ _hermes_native_profiles_public }}"
       loop_control:
         loop_var: _profile
         label: "{{ _profile.name }}"
 
     - name: Merge the declared profile configs into the live files
       ansible.builtin.include_tasks: profile_config.yml
-      loop: "{{ hermes_native_profiles }}"
+      loop: "{{ _hermes_native_profiles_public }}"
       loop_control:
         loop_var: _profile
         label: "{{ _profile.name }}"
@@ -39,16 +45,17 @@
 
     # Only this line is managed, so any other key Hermes (or a person) writes to the profile's
     # .env is kept. Hermes reads it as the profile's own key and refuses that profile any other.
+    # It's written as the hermes user, not root: the folder is the agent's, and a symlink it
+    # planted there must not lead a root write (and a chown) to a file the agent can't touch.
     - name: Ensure each profile with its own API key has it in its .env
       ansible.builtin.lineinfile:
         path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/.env"
         regexp: '^API_SERVER_KEY='
         line: "API_SERVER_KEY={{ _profile.api_server_key }}"
         create: true
-        owner: "{{ hermes_native_user }}"
-        group: "{{ hermes_native_user }}"
         mode: "0600"
       become: true
+      become_user: "{{ hermes_native_user }}"
       loop: "{{ hermes_native_profiles | selectattr('api_server_key', 'defined') | list }}"
       loop_control:
         loop_var: _profile

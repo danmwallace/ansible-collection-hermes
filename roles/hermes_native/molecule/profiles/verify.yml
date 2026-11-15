@@ -52,3 +52,80 @@
               - ansible_failed_result.msg is search('16')
               - "'tooshortkey' not in (ansible_failed_result | to_json)"
             quiet: true
+
+    # A symlink planted by the hermes user must not let the play write a root-only file.
+    - name: Ensure a root-only target exists
+      ansible.builtin.copy:
+        dest: /root/target
+        content: "root-only\n"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Replace the profile .env with a symlink to it, as the hermes user
+      ansible.builtin.command:
+        argv: [ln, -sfn, /root/target, /home/hermes/profiles/desktop/.env]
+      become: true
+      become_user: hermes
+      changed_when: true
+
+    - name: Apply the profile tasks against the planted symlink
+      block:
+        - name: Run the profile tasks
+          ansible.builtin.include_role:
+            name: danmwallace.hermes.hermes_native
+            tasks_from: profiles.yml
+          vars:
+            hermes_native_user: hermes
+            hermes_native_profiles:
+              - name: desktop
+                api_server_key: molecule-key-0123456789abcdef
+      rescue:
+        - name: Note that the write was refused
+          ansible.builtin.debug:
+            msg: refused, as it should be
+
+    - name: Read the root-only target
+      ansible.builtin.stat:
+        path: /root/target
+      register: hermes_native_verify_target
+
+    - name: Read its content
+      ansible.builtin.slurp:
+        src: /root/target
+      register: hermes_native_verify_target_content
+
+    - name: Check the root-only file is untouched
+      ansible.builtin.assert:
+        that:
+          - hermes_native_verify_target.stat.pw_name == 'root'
+          - hermes_native_verify_target.stat.mode == '0600'
+          - (hermes_native_verify_target_content.content | b64decode) == 'root-only\n'
+        quiet: true
+
+- name: Verify the key stays out of verbose output
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Run converge again at -vvv
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - -vvv
+          - -i
+          - "{{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}"
+          - "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/converge.yml"
+      environment:
+        ANSIBLE_ROLES_PATH: "{{ lookup('env', 'ANSIBLE_ROLES_PATH') }}"
+      register: hermes_native_verify_vvv
+      changed_when: false
+      failed_when: false
+
+    - name: Check the key appears nowhere in it
+      ansible.builtin.assert:
+        that:
+          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stdout"
+          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stderr"
+          - "'PLAY RECAP' in hermes_native_verify_vvv.stdout"
+        fail_msg: "the key appeared in -vvv output (rc={{ hermes_native_verify_vvv.rc }})"
+        quiet: true

@@ -114,8 +114,8 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
 10. **Provision profiles**: for each `hermes_native_profiles` entry, creates
     `~/profiles/<name>/` (0700) and merges its `config` into `config.yaml`. For entries with
     `api_server_key`, it checks that each key is at least 16 characters, then makes sure the
-    line `API_SERVER_KEY=<key>` is in `~/profiles/<name>/.env` (0600, `no_log`). Only that
-    line is managed.
+    line `API_SERVER_KEY=<key>` is in `~/profiles/<name>/.env` (0600, `no_log`), writing as
+    the hermes user so a planted symlink can't redirect a root write. Only that line is managed.
 
 `Restart hermes-agent service` and `Restart hermes-dashboard service` handlers fire when the
 env file, config.yaml, or the respective systemd unit changes.

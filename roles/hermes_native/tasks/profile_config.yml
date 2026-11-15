@@ -8,12 +8,14 @@
   ansible.builtin.stat:
     path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
   become: true
+  become_user: "{{ hermes_native_user }}"
   register: _hermes_native_profile_stat
 
 - name: "Read the live config.yaml of profile {{ _profile.name }}"
   ansible.builtin.slurp:
     src: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
   become: true
+  become_user: "{{ hermes_native_user }}"
   register: _hermes_native_profile_slurp
   when: _hermes_native_profile_stat.stat.exists
   no_log: true
@@ -40,9 +42,8 @@
       # Ansible owns the keys declared in hermes_native_profiles; everything else Hermes writes here is kept.
       {{ _hermes_native_profile_merged | to_nice_yaml(indent=2) }}
     dest: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}/config.yaml"
-    owner: "{{ hermes_native_user }}"
-    group: "{{ hermes_native_user }}"
     mode: "0640"
   become: true
+  become_user: "{{ hermes_native_user }}"
   when: _hermes_native_profile_merged != _hermes_native_profile_current
   notify: Restart hermes-agent service

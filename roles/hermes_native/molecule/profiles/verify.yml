@@ -103,6 +103,54 @@
           - (hermes_native_verify_target_content.content | b64decode) == 'root-only\n'
         quiet: true
 
+    # The profile folder itself, swapped for a symlink to a root-owned folder, must not lead the
+    # play to chown or chmod that folder.
+    - name: Ensure a root-owned folder exists
+      ansible.builtin.file:
+        path: /opt/rootdir
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Replace the profile folder with a symlink to it, as the hermes user
+      ansible.builtin.shell:
+        cmd: rm -rf /home/hermes/profiles/desktop && ln -s /opt/rootdir /home/hermes/profiles/desktop
+      become: true
+      become_user: hermes
+      changed_when: true
+
+    - name: Apply the profile tasks against the planted folder symlink
+      block:
+        - name: Run the profile tasks
+          ansible.builtin.include_role:
+            name: danmwallace.hermes.hermes_native
+            tasks_from: profiles.yml
+          vars:
+            hermes_native_user: hermes
+            hermes_native_profiles:
+              - name: desktop
+                config:
+                  approvals:
+                    mode: manual
+      rescue:
+        - name: Note that the change was refused
+          ansible.builtin.debug:
+            msg: refused, as it should be
+
+    - name: Read the root-owned folder
+      ansible.builtin.stat:
+        path: /opt/rootdir
+      register: hermes_native_verify_rootdir
+
+    - name: Check the root-owned folder is untouched
+      ansible.builtin.assert:
+        that:
+          - hermes_native_verify_rootdir.stat.pw_name == 'root'
+          - hermes_native_verify_rootdir.stat.mode == '0755'
+        fail_msg: "/opt/rootdir is now {{ hermes_native_verify_rootdir.stat.pw_name }} {{ hermes_native_verify_rootdir.stat.mode }}"
+        quiet: true
+
 - name: Verify the key stays out of verbose output
   hosts: localhost
   gather_facts: false

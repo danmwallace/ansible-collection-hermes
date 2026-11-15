@@ -5,6 +5,18 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-11-15
+
+### Security
+
+- `hermes_native` profiles: the profile folder and `config.yaml` tasks now run as `hermes_native_user`, as the `.env` task already did.
+  - Before, root created and chowned `~/profiles/<name>`. If the agent had replaced that folder with a symlink to a root-owned folder, the next play run handed that folder to the agent.
+  - Molecule plants such a symlink. Before the fix the folder became `hermes`-owned; now it's untouched.
+
+### Changed
+
+- README: how to revoke a profile key (removing `api_server_key` from the inventory leaves the line in place) and what rotation does to existing runs.
+
 ## [1.11.0] - 2026-11-15
 
 ### Added

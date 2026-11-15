@@ -13,12 +13,13 @@
       ansible.builtin.file:
         path: "/home/{{ hermes_native_user }}/profiles/{{ _profile.name }}"
         state: directory
-        owner: "{{ hermes_native_user }}"
-        group: "{{ hermes_native_user }}"
         # Hermes tightens its profile directories to 0700 on every start;
         # declaring anything looser made this task report changed on each run.
         mode: "0700"
+      # As the hermes user: the folder is the agent's, and a symlink it planted there must not
+      # lead a root chown/chmod to a folder the agent doesn't own.
       become: true
+      become_user: "{{ hermes_native_user }}"
       loop: "{{ _hermes_native_profiles_public }}"
       loop_control:
         loop_var: _profile

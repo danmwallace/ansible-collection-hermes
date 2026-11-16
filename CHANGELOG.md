@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The role now owns `model`, `gateway.platforms.discord` (when a profile has a Discord gateway) and `hermes_config_extra`, and keeps everything else.
   - The file is written only when the merged mapping differs from what's on disk. A debug task names the top-level keys that change, because `no_log` hides the diff.
   - `model` is written as `model.default`. The legacy `model.model` key the template wrote is removed, because Hermes reads it in preference to `model.default`.
+  - The Discord token, `extra.allow_from` and `extra.allow_admin_from` are fully Ansible-owned. They're stripped from the live file before the merge, so emptying `allowed_users` or `admin_users`, or removing the Discord gateway from every profile, takes them off the host. A recursive merge on its own would leave a revoked user's access in place. Other keys Hermes writes under `gateway.platforms.discord`, such as a home channel, are kept.
 - `hermes_gateway`: the profile directories and `SOUL.md` are owned by the container's `hermes_uid:hermes_gid` (new defaults, 10000, matching the `hermes` role), not `ansible:<hermes_gateway_deploy_group>`. The container's entrypoint chowns them back on every start, so every run reported a change, and the agent couldn't write to its profile folder until the next restart.
 
 ### Changed

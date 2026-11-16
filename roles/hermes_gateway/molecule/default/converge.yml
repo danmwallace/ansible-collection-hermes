@@ -22,6 +22,13 @@
           _config_version: 53
           gateway:
             multiplex_profiles: true
+            platforms:
+              discord:
+                token: revoked-old-token
+                home_channel: "555"
+                extra:
+                  allow_from: "111111111111111111"
+                  allow_admin_from: "222222222222222222"
           model:
             provider: anthropic
             model: claude-old-model
@@ -53,5 +60,4 @@
                 bot_token: test-discord-token
                 allowed_users:
                   - "123456789012345678"
-                admin_users:
-                  - "123456789012345678"
+                admin_users: []

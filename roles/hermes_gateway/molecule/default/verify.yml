@@ -32,6 +32,8 @@
           - cfg.gateway.multiplex_profiles
           - cfg.gateway.platforms.discord.token == 'test-discord-token'
           - cfg.gateway.platforms.discord.extra.allow_from == '123456789012345678'
+          - "'allow_admin_from' not in cfg.gateway.platforms.discord.extra"
+          - cfg.gateway.platforms.discord.home_channel == '555'
           - cfg.approvals.mode == 'smart'
         quiet: true
       no_log: true

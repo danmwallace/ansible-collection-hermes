@@ -76,11 +76,19 @@
 # model is combined non-recursively first to drop the legacy `model.model` key
 # the template wrote: Hermes reads `model.model` in preference to the canonical
 # `model.default`, so leaving it behind would pin the old model.
+#
+# The Discord credential and access keys (token, extra.allow_from,
+# extra.allow_admin_from) are Ansible-owned outright: they are stripped from the
+# live mapping before the merge, so emptying allowed_users or admin_users, or
+# dropping the Discord gateway from every profile, removes them from the host
+# instead of leaving the old token and allow lists in place (a recursive merge
+# alone would fail open on revocation). Other keys Hermes writes under
+# gateway.platforms.discord (such as a home channel) are kept.
 - name: Merge the Ansible-owned keys into the live config
   ansible.builtin.set_fact:
     _hermes_gateway_config_current: "{{ _hermes_gateway_cfg_live }}"
     _hermes_gateway_config_merged: >-
-      {{ _hermes_gateway_cfg_live
+      {{ _hermes_gateway_cfg_live_revoked
          | combine({'model': _hermes_gateway_cfg_live.model | default({}, true)
                              | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
          | combine({'model': _hermes_gateway_cfg_model}, recursive=true)
@@ -90,6 +98,30 @@
     _hermes_gateway_cfg_live: >-
       {{ (_hermes_gateway_config_slurp.content | b64decode | from_yaml | default({}, true))
          if _hermes_gateway_config_stat.stat.exists else {} }}
+    _hermes_gateway_live_gateway: "{{ _hermes_gateway_cfg_live.gateway | default({}, true) }}"
+    _hermes_gateway_live_platforms: "{{ _hermes_gateway_live_gateway.platforms | default({}, true) }}"
+    _hermes_gateway_live_discord: "{{ _hermes_gateway_live_platforms.discord | default({}, true) }}"
+    _hermes_gateway_live_discord_extra_kept: >-
+      {{ _hermes_gateway_live_discord.extra | default({}, true) | dict2items
+         | rejectattr('key', 'in', ['allow_from', 'allow_admin_from']) | items2dict }}
+    _hermes_gateway_live_discord_kept: >-
+      {{ _hermes_gateway_live_discord | dict2items | rejectattr('key', 'in', ['token', 'extra']) | items2dict
+         | combine({'extra': _hermes_gateway_live_discord_extra_kept}
+                   if _hermes_gateway_live_discord_extra_kept | length > 0 else {}) }}
+    _hermes_gateway_live_platforms_kept: >-
+      {{ _hermes_gateway_live_platforms | dict2items | rejectattr('key', 'eq', 'discord') | items2dict
+         | combine({'discord': _hermes_gateway_live_discord_kept}
+                   if _hermes_gateway_live_discord_kept | length > 0 else {}) }}
+    _hermes_gateway_live_gateway_kept: >-
+      {{ _hermes_gateway_live_gateway | dict2items | rejectattr('key', 'eq', 'platforms') | items2dict
+         | combine({'platforms': _hermes_gateway_live_platforms_kept}
+                   if _hermes_gateway_live_platforms_kept | length > 0 else {}) }}
+    # The live mapping without the Ansible-owned Discord keys; empty containers
+    # they leave behind are dropped too, so a host without Discord config is unchanged.
+    _hermes_gateway_cfg_live_revoked: >-
+      {{ _hermes_gateway_cfg_live | dict2items | rejectattr('key', 'eq', 'gateway') | items2dict
+         | combine({'gateway': _hermes_gateway_live_gateway_kept}
+                   if _hermes_gateway_live_gateway_kept | length > 0 else {}) }}
     _hermes_gateway_cfg_model: >-
       {{ {'provider': hermes_default_model.provider, 'default': hermes_default_model.model}
          | combine({'base_url': hermes_default_model.base_url,

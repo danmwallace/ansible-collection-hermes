@@ -1,0 +1,18 @@
+---
+# SPDX-License-Identifier: MIT
+# After a registry change, start hypr-mcp sync now (hermes#47): the path unit's own trigger can
+# be lost when an entry is written while an earlier sync still runs, which left a new server
+# unregistered, and its ask rules unwritten, until the next login. --no-block: the sync takes
+# seconds per server. Without a running user manager (nobody logged in) the start fails, which
+# is fine: the sync runs at login.
+- name: Start hypr-mcp sync
+  listen: Sync the MCP registry
+  become: true
+  become_user: "{{ mcp_servers_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts.getent_passwd[mcp_servers_user][1] }}"
+  ansible.builtin.command:
+    argv: [systemctl, --user, start, --no-block, hypr-mcp-sync.service]
+  register: mcp_servers_sync_start
+  changed_when: mcp_servers_sync_start.rc == 0
+  failed_when: false

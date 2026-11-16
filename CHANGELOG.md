@@ -5,6 +5,12 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] - 2026-11-16
+
+### Fixed
+
+- `mcp_servers`: after a registry change, the role starts `hypr-mcp-sync.service` as the user (`--no-block`, once per role run). The path unit's trigger could be lost while an earlier sync ran, which left a new server unregistered, and its ask rules unwritten, until the next login (#47).
+
 ## [1.12.0] - 2026-11-16
 
 ### Added

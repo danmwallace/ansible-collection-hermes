@@ -156,3 +156,8 @@
     loop_var: mcp_servers_server
     label: "{{ mcp_servers_server.name }}"
   no_log: true  # each item carries the server's secrets
+
+# Run the sync handler now, with this run's user: handlers otherwise run once at the end of the
+# play, with the variables of whichever role run came last.
+- name: Sync the MCP registry now if it changed
+  ansible.builtin.meta: flush_handlers

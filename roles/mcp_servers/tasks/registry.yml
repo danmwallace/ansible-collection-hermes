@@ -29,6 +29,7 @@
     mode: "0644"
     content: "{{ {'askEveryTime': mcp_servers_server.ask_every_time} | to_nice_json(sort_keys=true) }}\n"
   when: mcp_servers_server.ask_every_time | default([]) | length > 0
+  notify: Sync the MCP registry
 
 - name: Ensure the registry folder exists
   become: true
@@ -68,6 +69,7 @@
          | combine({'readOnlyTools': mcp_servers_server.read_only_tools} if mcp_servers_server.read_only_tools is defined else {})
          | combine({'denyTools': mcp_servers_server.deny_tools} if mcp_servers_server.deny_tools is defined else {})
          | combine({'toolNotes': mcp_servers_server.tool_notes} if mcp_servers_server.tool_notes is defined else {}) }}
+  notify: Sync the MCP registry
 
 # Removed after the user entry is written (so a racing sync still sees the old list), and only
 # when the file is the role's own: holding nothing but askEveryTime. A hand-written machine
@@ -90,6 +92,7 @@
     - mcp_servers_server.ask_every_time | default([]) | length == 0
     - mcp_servers_machine_file.content is defined
     - (mcp_servers_machine_file.content | b64decode | from_json | list) == ['askEveryTime']
+  notify: Sync the MCP registry
 
 # A host that moved here from Fedora KDE (claude_cli mode) still has Claude Code's entry,
 # the launcher and the old credentials; hypr-mcp leaves entries it didn't add alone.

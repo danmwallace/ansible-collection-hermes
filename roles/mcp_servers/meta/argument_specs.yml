@@ -154,6 +154,14 @@ argument_specs:
             type: list
             elements: str
             description: Tools no agent or client may call (denyTools). Needs the atomic-hyprland registry.
+          ask_every_time:
+            type: list
+            elements: str
+            description: >-
+              Tools that need approval on every call, never "always allow" (askEveryTime): a card
+              in the desktop agent, an ask rule in Claude Code, excluded from Gemini CLI. Written to
+              the root-owned /etc/atomic-hyprland/mcp.d/<name>.json, not the user's entry, so the
+              user account can't drop it. Needs the atomic-hyprland registry.
           tool_notes:
             type: dict
             description: Tool -> how to undo it, shown on its approval card (toolNotes).

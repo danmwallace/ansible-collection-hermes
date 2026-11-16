@@ -18,6 +18,7 @@
       headers: { X-Plain: "1" }
       header_secrets: { Authorization: "Bearer h3ader-s3cret" }
       deny_tools: [edit_thing]
+      ask_every_time: [run_thing]
       tool_notes: { run_thing: "stop it in the UI" }
       read_only_tools: [list_things]
     release_server:

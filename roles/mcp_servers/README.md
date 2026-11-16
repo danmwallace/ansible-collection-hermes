@@ -15,7 +15,7 @@ Where a server goes depends on the host:
 | `claude_cli` | anything else (e.g. Fedora KDE) | `claude mcp add-json -s user`, pointing at a launcher in `~/.local/libexec/mcp-servers/<name>` | `~/.local/share/mcp-servers/credentials/<name>-<env>.cred`, decrypted by the launcher |
 
 The same variables work on both, so a machine moving to atomic-hyprland only needs the
-play run again. `url` servers and `deny_tools` need the registry.
+play run again. `url` servers, `deny_tools` and `ask_every_time` need the registry.
 
 ## Requirements
 
@@ -61,6 +61,7 @@ Each `mcp_servers_list` entry:
 | `uv_tool` | dict | no | `{source, version}`: `uv tool install --force git+<source>@<version>` as the user; `command` is then the console script, e.g. `/home/<user>/.local/bin/<script>`. |
 | `read_only_tools` | list of str | no | Registry `readOnlyTools`: no approval card on atomic-hyprland, usable in ask mode. |
 | `deny_tools` | list of str | no | Registry `denyTools`: no agent or client may call them. Registry mode only. |
+| `ask_every_time` | list of str | no | Registry `askEveryTime`: tools that need approval on every call and are never offered "always allow" (a card in the desktop agent, an ask rule in Claude Code, excluded from Gemini CLI). Written to the root-owned machine layer, `/etc/atomic-hyprland/mcp.d/<name>.json`, as a list-only file, so the user account can't drop it from its own entry. Registry mode only; a tool can't also be in `read_only_tools`. |
 | `tool_notes` | dict | no | Registry `toolNotes`: tool → how to undo it, shown on its approval card. |
 
 ## Dependencies
@@ -117,7 +118,7 @@ by `danmwallace.hermes.claude_code`).
    argument spec also checks types and refuses unknown keys.)
 2. Looks up the user's home and settles the platform (`auto`: atomic-hyprland if
    `/run/ostree-booted` and `/usr/bin/hypr-mcp` exist).
-3. On a `claude_cli` host, refuses `url` servers and `deny_tools` before writing anything.
+3. On a `claude_cli` host, refuses `url` servers, `deny_tools` and `ask_every_time` before writing anything. A tool in both `read_only_tools` and `deny_tools` or `ask_every_time` is refused too.
 4. Ensures the private credential folder exists.
 5. For each server, in this order:
    1. installs the npm package, the GitHub release binary (download checked against
@@ -127,7 +128,8 @@ by `danmwallace.hermes.claude_code`).
    2. copies its `files`;
    3. stores each `secrets` and `header_secrets` value as a `systemd-creds --user`
       credential, as the user, rewriting it only when the value changed;
-   4. writes the registry entry (registry mode), or the launcher and Claude Code entry
+   4. writes the registry entry (registry mode), plus, when `ask_every_time` is set, a root-owned
+      list-only file in `/etc/atomic-hyprland/mcp.d` (removed when it isn't), or the launcher and Claude Code entry
       (`claude_cli` mode). In registry mode it also retires a `claude_cli` setup left from
       before a move to atomic-hyprland.
 

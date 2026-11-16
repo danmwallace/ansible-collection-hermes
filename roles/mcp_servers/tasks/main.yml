@@ -13,6 +13,7 @@
         'header_keys': ((s.headers | default({})) | list) + ((s.header_secrets | default({})) | list),
         'plain_header_keys': (s.headers | default({})) | list,
         'read_only': s.read_only_tools | default([]), 'deny': s.deny_tools | default([]),
+        'ask': s.ask_every_time | default([]),
         'release_command': (s.command | default('') | string) if s.github_release is defined else none,
         'release_sha': (s.github_release.sha256 | default('') | string) if s.github_release is defined else none}) %}{% endfor %}{{ shapes }}
 
@@ -78,6 +79,15 @@
   loop_control:
     label: "{{ item.name }}"
 
+- name: Ensure no tool is both read-only and asked every time
+  ansible.builtin.assert:
+    that: item.read_only | intersect(item.ask) | length == 0
+    fail_msg: "{{ item.name }}: {{ item.read_only | intersect(item.ask) | join(', ') }} can't be both read-only and asked every time"
+    quiet: true
+  loop: "{{ mcp_servers_shapes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
 - name: Ensure a github_release installs into /usr/local/bin
   ansible.builtin.assert:
     that: item.release_command is none or item.release_command is match('^/usr/local/bin/[^/]+$')
@@ -120,12 +130,12 @@
     mcp_servers_home_dir: "{{ ansible_facts.getent_passwd[mcp_servers_user][4] }}"
     mcp_servers_is_atomic: "{{ mcp_servers_platform == 'auto' and (mcp_servers_atomic.results | map(attribute='stat.exists') | min) }}"
 
-# A url server or a deny list on a claude_cli host would be dropped without a word; a
-# dropped deny is a tool the operator meant to forbid. Refused before anything is written.
-- name: Ensure url servers and deny_tools are only used with the registry
+# A url server, a deny list or an ask list on a claude_cli host would be dropped without a
+# word; a dropped deny or ask is a tool the operator meant to forbid or to gate. Refused before anything is written.
+- name: Ensure url servers, deny_tools and ask_every_time are only used with the registry
   ansible.builtin.assert:
-    that: mcp_servers_mode == 'registry' or (item.url | length == 0 and item.deny | length == 0)
-    fail_msg: "{{ item.name }} needs the atomic-hyprland registry for url and deny_tools; this host is {{ mcp_servers_mode }}"
+    that: mcp_servers_mode == 'registry' or (item.url | length == 0 and item.deny | length == 0 and item.ask | length == 0)
+    fail_msg: "{{ item.name }} needs the atomic-hyprland registry for url, deny_tools and ask_every_time; this host is {{ mcp_servers_mode }}"
     quiet: true
   loop: "{{ mcp_servers_shapes }}"
   loop_control:

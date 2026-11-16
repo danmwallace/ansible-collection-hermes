@@ -10,7 +10,7 @@ hermes_native_install_dir: /home/hermes/hermes-agent
 hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
 
 # Git branch/tag to check out
-hermes_native_repo_version: v0.23.0
+hermes_native_repo_version: v0.23.1
 
 # Python the venv is built with (major.minor, as `uv venv --python` takes it).
 # Upstream supports one Python per release and locks uv.lock for it only
@@ -47,7 +47,7 @@ hermes_native_dashboard_host: "127.0.0.1"
 hermes_native_dashboard_port: 9119
 hermes_native_dashboard_username: hermes
 hermes_native_dashboard_password: ""  # supply from vault
-hermes_native_dashboard_insecure: true
+hermes_native_dashboard_insecure: false
 
 # Model configuration
 hermes_native_model_provider: anthropic
@@ -76,9 +76,14 @@ hermes_native_nopasswd_sudo: false
 # Example: ["/usr/bin/systemctl", "/usr/bin/podman", "/usr/bin/journalctl"]
 hermes_native_sudo_commands: []
 
-# Approvals policy — controls what hermes auto-approves in cron/gateway
-# (manual, smart or off; quoted so YAML does not read off as false)
-hermes_native_approvals_mode: "manual"
+# Approvals for dangerous commands.
+# mode: manual (always ask), smart (a guardian model approves low-risk flagged
+# commands and escalates the rest) or off. Quote "off": bare off is YAML false,
+# which Hermes reads as off without saying so; the role refuses a non-string.
+# cron_mode: what a cron run does with a flagged command, since nobody is there
+# to approve it: deny (block it) or approve. Hermes reads anything other than
+# approve/allow/off/yes as deny, so the role accepts only deny, approve, allow.
+hermes_native_approvals_mode: "smart"
 hermes_native_approvals_cron_mode: deny
 
 # Extra config.yaml keys merged on top of the role-managed ones (model,

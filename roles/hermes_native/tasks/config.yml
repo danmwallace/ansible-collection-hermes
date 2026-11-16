@@ -24,11 +24,18 @@
 # model is combined non-recursively first to drop the legacy `model.model` key
 # that releases up to 1.7.0 wrote: Hermes reads `model.model` in preference to
 # the canonical `model.default`, so leaving it behind would pin the old model.
+#
+# The Discord credential and access keys (token, extra.allow_from,
+# extra.allow_admin_from) are Ansible-owned outright: they are stripped from the
+# live mapping before the merge. Otherwise clearing hermes_native_discord_bot_token
+# (which skips the Discord block) would leave the old token and allow lists on the
+# host, so revoking access would fail open. Other keys Hermes writes under
+# gateway.platforms.discord (the /sethome channel) are kept.
 - name: Merge the Ansible-owned keys into the live config
   ansible.builtin.set_fact:
     _hermes_native_config_current: "{{ _hermes_native_cfg_live }}"
     _hermes_native_config_merged: >-
-      {{ _hermes_native_cfg_live
+      {{ _hermes_native_cfg_live_revoked
          | combine({'model': _hermes_native_cfg_live.model | default({}, true)
                              | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
          | combine(_hermes_native_cfg_managed, recursive=true)
@@ -38,6 +45,30 @@
     _hermes_native_cfg_live: >-
       {{ (_hermes_native_config_slurp.content | b64decode | from_yaml | default({}, true))
          if _hermes_native_config_stat.stat.exists else {} }}
+    _hermes_native_live_gateway: "{{ _hermes_native_cfg_live.gateway | default({}, true) }}"
+    _hermes_native_live_platforms: "{{ _hermes_native_live_gateway.platforms | default({}, true) }}"
+    _hermes_native_live_discord: "{{ _hermes_native_live_platforms.discord | default({}, true) }}"
+    _hermes_native_live_discord_extra_kept: >-
+      {{ _hermes_native_live_discord.extra | default({}, true) | dict2items
+         | rejectattr('key', 'in', ['allow_from', 'allow_admin_from']) | items2dict }}
+    _hermes_native_live_discord_kept: >-
+      {{ _hermes_native_live_discord | dict2items | rejectattr('key', 'in', ['token', 'extra']) | items2dict
+         | combine({'extra': _hermes_native_live_discord_extra_kept}
+                   if _hermes_native_live_discord_extra_kept | length > 0 else {}) }}
+    _hermes_native_live_platforms_kept: >-
+      {{ _hermes_native_live_platforms | dict2items | rejectattr('key', 'eq', 'discord') | items2dict
+         | combine({'discord': _hermes_native_live_discord_kept}
+                   if _hermes_native_live_discord_kept | length > 0 else {}) }}
+    _hermes_native_live_gateway_kept: >-
+      {{ _hermes_native_live_gateway | dict2items | rejectattr('key', 'eq', 'platforms') | items2dict
+         | combine({'platforms': _hermes_native_live_platforms_kept}
+                   if _hermes_native_live_platforms_kept | length > 0 else {}) }}
+    # The live mapping without the Ansible-owned Discord keys; containers they leave
+    # empty are dropped too, so a host without Discord config is unchanged.
+    _hermes_native_cfg_live_revoked: >-
+      {{ _hermes_native_cfg_live | dict2items | rejectattr('key', 'eq', 'gateway') | items2dict
+         | combine({'gateway': _hermes_native_live_gateway_kept}
+                   if _hermes_native_live_gateway_kept | length > 0 else {}) }}
     _hermes_native_cfg_managed:
       model:
         provider: "{{ hermes_native_model_provider }}"
@@ -67,7 +98,7 @@
       {%- endfor %} {{ _ns.keys | join(', ') }}
   when: _hermes_native_config_merged != _hermes_native_config_current
 
-# no_log only when a Discord token is in the file; otherwise --diff shows the change.
+# no_log only when a Discord token is in the file before or after; otherwise --diff shows the change.
 - name: Write hermes-agent config.yaml when the merge changes it
   ansible.builtin.copy:
     content: |
@@ -81,5 +112,10 @@
     mode: "0640"
   become: true
   when: _hermes_native_config_merged != _hermes_native_config_current
-  no_log: "{{ hermes_native_discord_bot_token | length > 0 }}"
+  # A token on either side of the write hides the diff: the new one, or the old one
+  # being revoked (its removal would otherwise print it on the "before" side).
+  no_log: >-
+    {{ hermes_native_discord_bot_token | length > 0
+       or (((_hermes_native_config_current.gateway | default({}, true)).platforms | default({}, true)).discord
+           | default({}, true)).token | default('', true) | length > 0 }}
   notify: Restart hermes-agent service

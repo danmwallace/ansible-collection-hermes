@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+---
+# Hermes reads a bare YAML `off` (boolean false) as mode off, and any cron_mode
+# it doesn't recognise (e.g. `auto`) as deny, both silently. Four hand-made
+# profiles once ran with approvals off that way. Check every place the role
+# writes approvals: the role vars, hermes_native_config_extra and each profile.
+# Only the mode values are collected, so a failure can't print a profile's key.
+- name: Ensure every approvals mode and cron_mode is a valid string
+  ansible.builtin.assert:
+    that:
+      - _hermes_native_modes | reject('string') | list | length == 0
+      - _hermes_native_modes | reject('in', ['manual', 'smart', 'off']) | list | length == 0
+      - _hermes_native_cron_modes | reject('string') | list | length == 0
+      - _hermes_native_cron_modes | reject('in', ['deny', 'approve', 'allow']) | list | length == 0
+    fail_msg: >-
+      Invalid approvals setting. mode must be the string manual, smart or off (quote "off":
+      bare off is YAML false); cron_mode must be deny, approve or allow.
+      Found modes {{ _hermes_native_modes }}, cron_modes {{ _hermes_native_cron_modes }}.
+    quiet: true
+  vars:
+    _hermes_native_approvals_blocks: >-
+      {{ [hermes_native_config_extra.approvals | default({})]
+         + (hermes_native_profiles | map(attribute='config', default={})
+            | map(attribute='approvals', default={}) | list) }}
+    _hermes_native_modes: >-
+      {{ [hermes_native_approvals_mode]
+         + (_hermes_native_approvals_blocks | selectattr('mode', 'defined') | map(attribute='mode') | list) }}
+    _hermes_native_cron_modes: >-
+      {{ [hermes_native_approvals_cron_mode]
+         + (_hermes_native_approvals_blocks | selectattr('cron_mode', 'defined')
+            | map(attribute='cron_mode') | list) }}

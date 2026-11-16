@@ -45,6 +45,40 @@
           toolNotes: { run_thing: stop it in the UI }
           readOnlyTools: [list_things]
 
+    # The ask list goes in the root-owned machine layer, never the user-writable entry, so
+    # an edit to ~/.config/atomic-hyprland/mcp.d can't drop it (registry.py adds the lists up).
+    - name: Read the ask fragment in the machine layer
+      ansible.builtin.stat:
+        path: /etc/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_ask_stat
+
+    - name: Read the ask fragment's content
+      ansible.builtin.slurp:
+        src: /etc/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_ask
+
+    - name: Check the ask list is root-owned, list-only, and only in the machine layer
+      ansible.builtin.assert:
+        that:
+          - mcp_servers_verify_ask_stat.stat.pw_name == 'root'
+          - mcp_servers_verify_ask_stat.stat.mode == '0644'
+          - "(mcp_servers_verify_ask.content | b64decode | from_json) == {'askEveryTime': ['run_thing']}"
+          - "'askEveryTime' not in (mcp_servers_verify_web.content | b64decode | from_json)"
+        quiet: true
+
+    # Written before the user entry: the entry's write starts hypr-mcp sync, and a sync that
+    # read the registry before the ask list existed must not be the last word.
+    - name: Read the user entry's timestamp
+      ansible.builtin.stat:
+        path: /home/devreg/.config/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_web_stat
+
+    - name: Check the ask list was in place before the user entry
+      ansible.builtin.assert:
+        that: mcp_servers_verify_ask_stat.stat.mtime <= mcp_servers_verify_web_stat.stat.mtime
+        fail_msg: "ask list {{ mcp_servers_verify_ask_stat.stat.mtime }} > entry {{ mcp_servers_verify_web_stat.stat.mtime }}"
+        quiet: true
+
     - name: Decrypt the header credential the way hypr-mcp headers does (no --name)
       become: true
       become_user: devreg
@@ -198,6 +232,57 @@
           - mcp_servers_verify_sentinel.stat.checksum == mcp_servers_verify_sentinel_before.stat.checksum
         quiet: true
 
+# Dropping ask_every_time removes the machine-layer fragment again.
+- name: Verify the ask fragment goes when the field does
+  hosts: molecule
+  gather_facts: true
+  tasks:
+    - name: Apply the url server without ask_every_time
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: registry
+        mcp_servers_list:
+          - { name: webtest, url: "https://web.test/mcp", header_secrets: { Authorization: "Bearer h3ader-s3cret" } }
+
+    - name: Read the ask fragment's path
+      ansible.builtin.stat:
+        path: /etc/atomic-hyprland/mcp.d/webtest.json
+      register: mcp_servers_verify_ask_gone
+
+    - name: Check the fragment is gone
+      ansible.builtin.assert:
+        that: not mcp_servers_verify_ask_gone.stat.exists
+        quiet: true
+
+    # Only a file holding nothing but askEveryTime is the role's to remove; a hand-written
+    # machine-layer definition of the same name stays.
+    - name: Plant a hand-written machine-layer file for a server
+      ansible.builtin.copy:
+        dest: /etc/atomic-hyprland/mcp.d/handmade.json
+        content: '{"command": "/usr/bin/handmade", "denyTools": ["wipe"]}'
+        mode: "0644"
+
+    - name: Apply the role for that server without ask_every_time
+      ansible.builtin.include_role:
+        name: danmwallace.hermes.mcp_servers
+      vars:
+        mcp_servers_user: devreg
+        mcp_servers_platform: registry
+        mcp_servers_list:
+          - { name: handmade, command: /usr/bin/testsrv }
+
+    - name: Read the hand-written file
+      ansible.builtin.slurp:
+        src: /etc/atomic-hyprland/mcp.d/handmade.json
+      register: mcp_servers_verify_handmade
+
+    - name: Check the hand-written file is untouched
+      ansible.builtin.assert:
+        that: "(mcp_servers_verify_handmade.content | b64decode | from_json) == {'command': '/usr/bin/handmade', 'denyTools': ['wipe']}"
+        quiet: true
+
 # A machine moving from Fedora KDE to atomic-hyprland: the claude_cli pieces (Claude
 # Code's entry, the launcher, its credentials) must go once the registry takes over.
 - name: Verify the claude_cli setup is retired when a host moves to the registry
@@ -253,6 +338,8 @@
         - { entry: { name: neither }, expect: exactly one of command or url }
         - { entry: { name: hs, command: /x, header_secrets: { A: b } }, expect: header_secrets needs url }
         - { entry: { name: ro, command: /x, read_only_tools: [t], deny_tools: [t] }, expect: both read-only and denied }
+        - { entry: { name: ra, command: /x, read_only_tools: [t], ask_every_time: [t] }, expect: both read-only and asked every time }
+        - { entry: { name: ac, command: /x, ask_every_time: [t] }, platform: claude_cli, expect: needs the atomic-hyprland registry }
         - { entry: { name: hn, url: "https://x", header_secrets: { "Bad Header": v } }, expect: header names }
         - { entry: { name: hauth, url: "https://x", headers: { Authorization: "Bearer x" } }, expect: use header_secrets }
         - { entry: { name: htok, url: "https://x", headers: { X-Api-Token: x } }, expect: use header_secrets }

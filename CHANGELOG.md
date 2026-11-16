@@ -5,6 +5,12 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-11-16
+
+### Added
+
+- `mcp_servers`: `ask_every_time`, the registry's `askEveryTime` (needs atomic-hyprland with that key): tools that need approval on every call, never "always allow". The list is written root-owned to `/etc/atomic-hyprland/mcp.d/<name>.json` (a list-only machine-layer file), not to the user's entry, so the user account can't drop it; it's removed when the field goes. Refused on `claude_cli` hosts, and alongside `read_only_tools` for the same tool.
+
 ## [1.11.1] - 2026-11-15
 
 ### Security

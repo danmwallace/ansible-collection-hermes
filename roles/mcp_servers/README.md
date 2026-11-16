@@ -135,6 +135,8 @@ by `danmwallace.hermes.claude_code`).
 
 The role has no handlers: `hypr-mcp-sync.path` on atomic-hyprland picks up registry changes.
 
+6. In registry mode, when an entry or ask list changed, starts `hypr-mcp-sync.service` as the user (`systemctl --user start --no-block`), so a new server is registered and its ask rules written now, not at the next login. Without a running user manager this does nothing, and the sync runs at login.
+
 ## Notes
 
 - **Credential names.** An env secret is `<name>-<env_name lowercased>`, a header secret

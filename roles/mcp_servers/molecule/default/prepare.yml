@@ -9,6 +9,34 @@
         create_home: true
       loop: [devreg, devcli, devmove]
 
+    # The role starts hypr-mcp sync (systemctl --user) when the registry changed and the user's
+    # systemd runs. A wrapper logs --user calls (with the caller and XDG_RUNTIME_DIR) instead of
+    # running them, and passes everything else to the real systemctl.
+    - name: Ensure the real systemctl is kept aside
+      ansible.builtin.command:
+        cmd: mv /usr/bin/systemctl /usr/bin/systemctl.real
+        creates: /usr/bin/systemctl.real
+
+    - name: Install a systemctl wrapper that logs --user calls
+      ansible.builtin.copy:
+        dest: /usr/bin/systemctl
+        mode: "0755"
+        content: |
+          #!/usr/bin/bash
+          if [ "$1" = "--user" ]; then
+              echo "$(id -un) XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-} $*" >> /tmp/systemctl-user.log
+              exit 0
+          fi
+          exec /usr/bin/systemctl.real "$@"
+
+    - name: Ensure the user-call log is writable by the test users
+      ansible.builtin.file:
+        path: /tmp/systemctl-user.log
+        state: touch
+        mode: "0666"
+        modification_time: preserve
+        access_time: preserve
+
     - name: Install a stand-in MCP server that prints how it was started
       ansible.builtin.copy:
         dest: /usr/bin/testsrv

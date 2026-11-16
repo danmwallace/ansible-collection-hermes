@@ -66,6 +66,29 @@
           - "'askEveryTime' not in (mcp_servers_verify_web.content | b64decode | from_json)"
         quiet: true
 
+    - name: Read the systemctl --user calls the role made
+      ansible.builtin.slurp:
+        src: /tmp/systemctl-user.log
+      register: mcp_servers_verify_sync_log
+
+    - name: Look up devreg's uid for the sync check
+      ansible.builtin.getent:
+        database: passwd
+        key: devreg
+
+    # The role starts hypr-mcp sync itself after changing the registry, so a new server is
+    # registered (and its ask rules written) now, not at the next login (hermes#47). Only the
+    # registry-mode user (devreg) gets it; claude_cli mode (devcli) has no registry to sync.
+    - name: Check the role started hypr-mcp sync as devreg, in its user manager, without waiting
+      ansible.builtin.assert:
+        that:
+          - expected in (mcp_servers_verify_sync_log.content | b64decode).splitlines()
+          - (mcp_servers_verify_sync_log.content | b64decode).splitlines() | select('search', '^devcli .*hypr-mcp-sync') | list | length == 0
+        fail_msg: "{{ mcp_servers_verify_sync_log.content | b64decode }}"
+        quiet: true
+      vars:
+        expected: "devreg XDG_RUNTIME_DIR=/run/user/{{ ansible_facts.getent_passwd.devreg[1] }} --user start --no-block hypr-mcp-sync.service"
+
     # Written before the user entry: the entry's write starts hypr-mcp sync, and a sync that
     # read the registry before the ask list existed must not be the last word.
     - name: Read the user entry's timestamp

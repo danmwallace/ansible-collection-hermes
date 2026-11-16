@@ -98,7 +98,7 @@
       {%- endfor %} {{ _ns.keys | join(', ') }}
   when: _hermes_native_config_merged != _hermes_native_config_current
 
-# no_log only when a Discord token is in the file; otherwise --diff shows the change.
+# no_log only when a Discord token is in the file before or after; otherwise --diff shows the change.
 - name: Write hermes-agent config.yaml when the merge changes it
   ansible.builtin.copy:
     content: |
@@ -112,5 +112,10 @@
     mode: "0640"
   become: true
   when: _hermes_native_config_merged != _hermes_native_config_current
-  no_log: "{{ hermes_native_discord_bot_token | length > 0 }}"
+  # A token on either side of the write hides the diff: the new one, or the old one
+  # being revoked (its removal would otherwise print it on the "before" side).
+  no_log: >-
+    {{ hermes_native_discord_bot_token | length > 0
+       or (((_hermes_native_config_current.gateway | default({}, true)).platforms | default({}, true)).discord
+           | default({}, true)).token | default('', true) | length > 0 }}
   notify: Restart hermes-agent service

@@ -26,9 +26,21 @@ argument_specs:
         type: str
         default: /opt/hermes/data
       hermes_gateway_deploy_group:
-        description: Unix group for per-profile directory ownership.
+        description: >-
+          Unused since 1.14.0: the profile directories and SOUL.md are owned by
+          hermes_uid:hermes_gid. Kept so existing inventories still validate.
         type: str
         default: docker
+      hermes_uid:
+        description: >-
+          UID the hermes container runs as (its PUID). Must match the hermes role. Owns
+          config.yaml, the profile directories and SOUL.md.
+        type: int
+        default: 10000
+      hermes_gid:
+        description: GID the hermes container runs as (its PGID). Must match the hermes role.
+        type: int
+        default: 10000
       hermes_default_model:
         description: Global model config applied to all profiles unless overridden per-profile.
         type: dict
@@ -58,8 +70,9 @@ argument_specs:
         default: false
       hermes_config_extra:
         description: >-
-          Dict merged into the top level of config.yaml for schema fields not
-          explicitly modelled.
+          Dict merged recursively into the live config.yaml after the role-managed keys
+          (model, the Discord gateway). Removing a key here does not remove it from the
+          host.
         type: dict
         default: {}
       hermes_gateway_deploy_mode:

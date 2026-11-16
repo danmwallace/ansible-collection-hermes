@@ -17,12 +17,16 @@
     that: hermes_anthropic_api_key | length > 0
     fail_msg: "hermes_anthropic_api_key must be set (supply from vault)"
 
+# Owned by the container's PUID/PGID, which the hermes container's entrypoint
+# chowns the data directory to on every start. Any other owner (this used to be
+# ansible:<deploy group>) was flipped back on the next start, so every play run
+# reported a change and left the agent without write access until a restart.
 - name: Ensure per-profile data directories exist
   ansible.builtin.file:
     path: "{{ hermes_data_dir }}/profiles/{{ item.name }}"
     state: directory
-    owner: ansible
-    group: "{{ hermes_gateway_deploy_group }}"
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
     mode: "0755"
   become: true
   loop: "{{ hermes_profiles }}"
@@ -47,14 +51,93 @@
     - hermes_gateway_profile_create_result.rc == 0
   when: hermes_gateway_create_profiles
 
-- name: Render config.yaml into data directory
-  ansible.builtin.template:
-    src: config.yaml.j2
+# Hermes rewrites config.yaml itself: `_config_version` after a migration,
+# gateway.multiplex_profiles, the `/sethome` channel, model.options and settings
+# changed from chat or the dashboard. Rendering the file from a template threw
+# all of that away on every run (dropping `_config_version` re-runs every config
+# migration on the next start). The Ansible-owned keys are merged into the live
+# mapping instead, as hermes_native does, and the file is written only when the
+# merged mapping differs from what is on disk; Hermes reformatting the file is
+# not a change.
+- name: Check whether a config.yaml exists in the data directory
+  ansible.builtin.stat:
+    path: "{{ hermes_data_dir }}/config.yaml"
+  become: true
+  register: _hermes_gateway_config_stat
+
+- name: Read the live config.yaml
+  ansible.builtin.slurp:
+    src: "{{ hermes_data_dir }}/config.yaml"
+  become: true
+  register: _hermes_gateway_config_slurp
+  when: _hermes_gateway_config_stat.stat.exists
+  no_log: true
+
+# model is combined non-recursively first to drop the legacy `model.model` key
+# the template wrote: Hermes reads `model.model` in preference to the canonical
+# `model.default`, so leaving it behind would pin the old model.
+- name: Merge the Ansible-owned keys into the live config
+  ansible.builtin.set_fact:
+    _hermes_gateway_config_current: "{{ _hermes_gateway_cfg_live }}"
+    _hermes_gateway_config_merged: >-
+      {{ _hermes_gateway_cfg_live
+         | combine({'model': _hermes_gateway_cfg_live.model | default({}, true)
+                             | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
+         | combine({'model': _hermes_gateway_cfg_model}, recursive=true)
+         | combine(_hermes_gateway_cfg_discord, recursive=true)
+         | combine(hermes_config_extra, recursive=true) }}
+  vars:
+    _hermes_gateway_cfg_live: >-
+      {{ (_hermes_gateway_config_slurp.content | b64decode | from_yaml | default({}, true))
+         if _hermes_gateway_config_stat.stat.exists else {} }}
+    _hermes_gateway_cfg_model: >-
+      {{ {'provider': hermes_default_model.provider, 'default': hermes_default_model.model}
+         | combine({'base_url': hermes_default_model.base_url,
+                    'api_key': hermes_default_model.api_key | default('none')}
+                   if hermes_default_model.base_url is defined else {}) }}
+    # The first Discord gateway across all profiles, as the template wrote it:
+    # Hermes runs one Discord gateway per config.
+    _hermes_gateway_discord_gws: >-
+      {{ hermes_profiles | map(attribute='gateways', default=[]) | flatten
+         | selectattr('type', 'eq', 'discord') | list }}
+    _hermes_gateway_discord_gw: "{{ _hermes_gateway_discord_gws | first | default({}) }}"
+    _hermes_gateway_discord_extra: >-
+      {{ ({'allow_from': _hermes_gateway_discord_gw.allowed_users | join(',')}
+          if _hermes_gateway_discord_gw.allowed_users | default([]) | length > 0 else {})
+         | combine({'allow_admin_from': _hermes_gateway_discord_gw.admin_users | join(',')}
+                   if _hermes_gateway_discord_gw.admin_users | default([]) | length > 0 else {}) }}
+    _hermes_gateway_cfg_discord: >-
+      {{ {'gateway': {'platforms': {'discord': {'token': _hermes_gateway_discord_gw.bot_token | default('')}
+                                               | combine({'extra': _hermes_gateway_discord_extra}
+                                                         if _hermes_gateway_discord_extra | length > 0 else {})}}}
+         if _hermes_gateway_discord_gws | length > 0 else {} }}
+  no_log: true
+
+- name: Report which top-level config keys the merge changes
+  ansible.builtin.debug:
+    msg: >-
+      config.yaml keys to update:
+      {%- set _ns = namespace(keys=[]) -%}
+      {%- for _k, _v in _hermes_gateway_config_merged.items() if _hermes_gateway_config_current.get(_k) != _v -%}
+      {%- set _ns.keys = _ns.keys + [_k] -%}
+      {%- endfor %} {{ _ns.keys | join(', ') }}
+  when: _hermes_gateway_config_merged != _hermes_gateway_config_current
+
+# Always no_log: the file holds the Anthropic or Discord credentials when they are
+# configured, and whatever Hermes stored there itself.
+- name: Write config.yaml when the merge changes it
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible — danmwallace.hermes.hermes_gateway
+      # Ansible owns model, gateway.platforms.discord (when a profile has a Discord gateway)
+      # and the keys in hermes_config_extra; everything else Hermes writes here is kept.
+      {{ _hermes_gateway_config_merged | to_nice_yaml(indent=2) }}
     dest: "{{ hermes_data_dir }}/config.yaml"
-    owner: "10000"
-    group: "10000"
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
     mode: "0640"
   become: true
+  when: _hermes_gateway_config_merged != _hermes_gateway_config_current
   no_log: true
   notify:
     - Restart hermes container
@@ -65,8 +148,8 @@
   ansible.builtin.template:
     src: soul.md.j2
     dest: "{{ hermes_data_dir }}/profiles/{{ item.name }}/SOUL.md"
-    owner: ansible
-    group: "{{ hermes_gateway_deploy_group }}"
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
     mode: "0644"
   become: true
   loop: "{{ hermes_profiles }}"

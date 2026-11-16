@@ -8,6 +8,11 @@ hermes_container_name: hermes # noqa: var-naming[no-role-prefix]
 hermes_deploy_dir: /opt/hermes # noqa: var-naming[no-role-prefix]
 hermes_data_dir: /opt/hermes/data # noqa: var-naming[no-role-prefix]
 hermes_gateway_deploy_group: docker
+# UID/GID the hermes container runs as (PUID/PGID); must match the hermes role,
+# whose entrypoint chowns hermes_data_dir to them on every start. config.yaml,
+# the profile directories and SOUL.md are owned by them.
+hermes_uid: 10000 # noqa: var-naming[no-role-prefix]
+hermes_gid: 10000 # noqa: var-naming[no-role-prefix]
 
 # Global model default — overridable per profile via profile.model dict
 hermes_default_model: # noqa: var-naming[no-role-prefix]

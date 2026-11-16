@@ -40,7 +40,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_user` | str | no | `hermes` | OS user the agent runs as. |
 | `hermes_native_install_dir` | str | no | `/home/hermes/hermes-agent` | Directory where the source is cloned and the venv is created. |
 | `hermes_native_repo_url` | str | no | `https://github.com/NousResearch/hermes-agent` | Git URL for the hermes-agent source repo. |
-| `hermes_native_repo_version` | str | no | `v0.23.0` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
+| `hermes_native_repo_version` | str | no | `v0.23.1` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
 | `hermes_native_python_version` | str | no | `"3.14"` | Python (major.minor) the venv is built with. Upstream supports one Python per release and `uv.lock` only resolves for it (3.14 since v0.23.0); a venv built with another version is removed, rebuilt and re-synced. Change it together with `hermes_native_repo_version` when a release moves to a new Python. |
 | `hermes_native_uv_extras` | list | no | `[all, discord]` | Extras for `uv sync --extra`. Since v0.23.0 upstream's `all` covers tooling only; messaging platforms (`discord`, `telegram`, ...) are separate extras. The list is recorded in `venv/.ansible-uv-extras`; changing it re-runs the sync. |
 | `hermes_native_workspace_dir` | str | no | `/home/hermes/workspace` | Pre-created directory for repos the agent will work on. |
@@ -52,7 +52,8 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_dashboard_enabled` | bool | no | `true` | When true, render and start `hermes-dashboard.service`. |
 | `hermes_native_dashboard_port` | int | no | `9119` | Port the web dashboard listens on. |
 | `hermes_native_dashboard_username` | str | no | `hermes` | Basic auth username for the dashboard. |
-| `hermes_native_approvals_cron_mode` | str | no | `deny` | Value written to `config.yaml` as `approvals.cron_mode` (`deny`, `allow`, or `auto`). |
+| `hermes_native_approvals_mode` | str | no | `smart` | `approvals.mode`: `smart` (a guardian model approves low-risk flagged commands and escalates the rest), `manual` (always ask) or `off`. Quote `"off"`; the role refuses a non-string, because Hermes reads a bare YAML `off` (false) as off without warning. |
+| `hermes_native_approvals_cron_mode` | str | no | `deny` | `approvals.cron_mode`: `deny` blocks a flagged command in a cron run, `approve` (or `allow`) runs it. Hermes reads any other value, such as `auto`, as `deny`, so the role refuses it. The role checks both settings in `hermes_native_config_extra` and every profile too. |
 | `hermes_native_config_extra` | dict | no | `{}` | Extra `config.yaml` keys merged on top of the role-managed ones (e.g. a `moa` preset, `max_concurrent_sessions`). Removing a key here does not remove it from the host. |
 | `hermes_native_traefik_conf_dir` | str | no | `/opt/podman/traefik/conf.d` | Directory where Traefik file-provider route files are written. |
 | `hermes_native_dashboard_traefik_enabled` | bool | no | `false` | When true, write a Traefik route file for the dashboard. |
@@ -81,7 +82,7 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
         hermes_native_api_server_key: "{{ vault_hermes_native_api_server_key }}"
         hermes_native_dashboard_password: "{{ vault_hermes_native_dashboard_password }}"
         hermes_native_gh_token: "{{ vault_hermes_native_gh_token }}"
-        hermes_native_approvals_cron_mode: allow
+        hermes_native_approvals_cron_mode: approve
         hermes_native_dashboard_traefik_enabled: true
         hermes_native_dashboard_traefik_hostname: hermes-dash.example.com
 ```

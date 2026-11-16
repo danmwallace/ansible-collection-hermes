@@ -25,7 +25,7 @@ argument_specs:
         description: Git URL for the hermes-agent source repo.
       hermes_native_repo_version:
         type: str
-        default: v0.23.0
+        default: v0.23.1
         description: Git tag or branch to check out. Pin to a release tag for reproducibility.
       hermes_native_python_version:
         type: str
@@ -101,11 +101,11 @@ argument_specs:
           only when direct host access is explicitly required.
       hermes_native_dashboard_insecure:
         type: bool
-        default: true
+        default: false
         description: >-
-          When true, passes --insecure to the dashboard process so it serves plain HTTP.
-          Keep true when Traefik handles TLS termination (the common case). Set false
-          only when the dashboard must serve HTTPS directly without a reverse proxy.
+          When true, passes --insecure to the dashboard process. A no-op since Hermes' June 2026
+          hardening: a non-loopback bind always requires auth (the basic-auth password here).
+          Kept only so older inventories still validate.
       hermes_native_dashboard_port:
         type: int
         default: 9119
@@ -127,6 +127,20 @@ argument_specs:
         type: str
         default: claude-sonnet-4-6
         description: Model name passed to the provider.
+      hermes_native_approvals_mode:
+        type: str
+        default: smart
+        choices: [manual, smart, "off"]
+        description: >-
+          approvals.mode. smart: a guardian model approves low-risk flagged commands and
+          escalates the rest; manual: always ask; off: never ask. Quote "off" in YAML.
+      hermes_native_approvals_cron_mode:
+        type: str
+        default: deny
+        choices: [deny, approve, allow]
+        description: >-
+          approvals.cron_mode: what a cron run does with a flagged command (nobody is there
+          to approve it). deny blocks it; approve and allow run it.
       hermes_native_anthropic_api_key:
         type: str
         default: ""

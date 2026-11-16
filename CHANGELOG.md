@@ -5,6 +5,26 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-11-16
+
+### Changed
+
+- `hermes_native`: `hermes_native_approvals_mode` now defaults to `smart` (was `manual`). The guardian model approves low-risk flagged commands and escalates the rest. A host that wants every flagged command asked about sets `manual`.
+- `hermes_native`: `hermes_native_repo_version` now defaults to `v0.23.1` (was `v0.23.0`). Same Python (3.14) and extras. v0.23.0 silently falls back to the plugin catalog it shipped with, so installs miss newer plugins and removals.
+- `hermes_native`: `hermes_native_dashboard_insecure` now defaults to `false`. `--insecure` has been a no-op since Hermes' June 2026 hardening: a non-loopback bind always requires auth.
+
+### Added
+
+- `hermes_native`: the role refuses any approvals setting that Hermes would silently misread. It checks the role vars, `approvals` in `hermes_native_config_extra`, and each profile's `config.approvals`.
+  - `mode` must be the string `manual`, `smart` or `off`. A bare YAML `off` is boolean false, which Hermes reads as off without warning; four hand-made profiles once ran with approvals off that way.
+  - `cron_mode` must be `deny`, `approve` or `allow`. Hermes reads anything else, such as `auto`, as `deny`.
+  - Only the mode values are collected, so a failure can't print a profile key.
+- `hermes_native`: `argument_specs` entries for `hermes_native_approvals_mode` and `hermes_native_approvals_cron_mode`, with choices.
+
+### Fixed
+
+- `hermes_native` README: `cron_mode` no longer lists `auto` as a valid value.
+
 ## [1.12.1] - 2026-11-16
 
 ### Fixed

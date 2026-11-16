@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Only the mode values are collected, so a failure can't print a profile key.
 - `hermes_native`: `argument_specs` entries for `hermes_native_approvals_mode` and `hermes_native_approvals_cron_mode`, with choices.
 
+### Security
+
+- `hermes_native`: the Discord `token`, `extra.allow_from` and `extra.allow_admin_from` in `config.yaml` are now owned outright by Ansible. They're stripped from the live file before the merge.
+  - Before this, clearing `hermes_native_discord_bot_token` skipped the Discord block entirely, so the old token and allow lists stayed on the host and revoking access failed open.
+  - Other keys Hermes writes under `gateway.platforms.discord`, such as the `/sethome` channel, are kept.
+  - Same fix as `hermes_gateway` in #50.
+
 ### Fixed
 
 - `hermes_native` README: `cron_mode` no longer lists `auto` as a valid value.

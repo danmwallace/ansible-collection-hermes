@@ -5,6 +5,21 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-11-16
+
+### Fixed
+
+- `hermes_gateway`: `config.yaml` is merged into the live file instead of rendered from a template, as `hermes_native` already does.
+  - The template threw away every key Hermes writes itself on each run. On ai01 that meant `_config_version` (which makes Hermes re-run every config migration on the next start) and `gateway.multiplex_profiles`.
+  - The role now owns `model`, `gateway.platforms.discord` (when a profile has a Discord gateway) and `hermes_config_extra`, and keeps everything else.
+  - The file is written only when the merged mapping differs from what's on disk. A debug task names the top-level keys that change, because `no_log` hides the diff.
+  - `model` is written as `model.default`. The legacy `model.model` key the template wrote is removed, because Hermes reads it in preference to `model.default`.
+- `hermes_gateway`: the profile directories and `SOUL.md` are owned by the container's `hermes_uid:hermes_gid` (new defaults, 10000, matching the `hermes` role), not `ansible:<hermes_gateway_deploy_group>`. The container's entrypoint chowns them back on every start, so every run reported a change, and the agent couldn't write to its profile folder until the next restart.
+
+### Changed
+
+- `hermes_gateway`: `hermes_gateway_deploy_group` is no longer used. It's kept so existing inventories still validate. `templates/config.yaml.j2` is removed.
+
 ## [1.13.0] - 2026-11-16
 
 ### Changed

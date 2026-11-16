@@ -1,6 +1,6 @@
 # danmwallace.hermes.hermes_gateway
 
-Configures [Hermes Agent](https://hermes-agent.nousresearch.com/) profiles, gateway connections, and per-profile identity files on a host where the `danmwallace.hermes.hermes` role has already deployed the container. The role templates `config.yaml` (global model selection and Discord gateway config) and per-profile `SOUL.md` identity files into the Hermes data directory, then optionally runs `hermes profile create` inside the container via `docker exec` to register any new profiles.
+Configures [Hermes Agent](https://hermes-agent.nousresearch.com/) profiles, gateway connections, and per-profile identity files on a host where the `danmwallace.hermes.hermes` role has already deployed the container. The role merges its keys (global model selection, Discord gateway config and `hermes_config_extra`) into the live `config.yaml` in the Hermes data directory, writes per-profile `SOUL.md` identity files, then optionally runs `hermes profile create` inside the container via `docker exec` to register any new profiles.
 
 This role is re-runnable independently of the `hermes` role — it can be applied on its own to update agent config without re-deploying the compose stack.
 
@@ -9,7 +9,6 @@ This role is re-runnable independently of the `hermes` role — it can be applie
 - Ansible >= 2.16
 - `community.docker` collection on the controller
 - Target host with Docker installed and the Hermes container running (unless `hermes_gateway_create_profiles: false` and `hermes_gateway_skip_docker: true`)
-- An `ansible` user and a `docker` group on the target host
 
 ## Role Variables
 
@@ -17,11 +16,13 @@ This role is re-runnable independently of the `hermes` role — it can be applie
 | --- | --- | --- | --- | --- |
 | `hermes_container_name` | str | no | `hermes` | Name of the running Hermes container. Must match the `hermes` role value on the same host. |
 | `hermes_data_dir` | str | no | `/opt/hermes/data` | Hermes data directory on the host. Must match the `hermes` role value. |
-| `hermes_default_model` | dict | no | `{provider: anthropic, model: claude-sonnet-4-6}` | Global model config written to `config.yaml`. Accepts `provider`, `model`, and optionally `base_url` and `api_key`. |
+| `hermes_default_model` | dict | no | `{provider: anthropic, model: claude-sonnet-4-6}` | Global model config, written to `config.yaml` as `model.provider` and `model.default` (plus `base_url` and `api_key` when `base_url` is set). Accepts `provider`, `model`, and optionally `base_url` and `api_key`. |
 | `hermes_profiles` | list | **yes** | — | List of agent profile dicts. Each entry needs at minimum `name` (str). Optional keys: `soul` (str — written as `SOUL.md`), `gateways` (list of gateway dicts). Discord gateway dicts require `type: discord`, `bot_token` (**Supply from vault.**), `allowed_users` (list of snowflake IDs), and `admin_users` (list). |
 | `hermes_gateway_create_profiles` | bool | no | `true` | When true, runs `hermes profile create <name>` via docker exec for each profile. Set `false` before the container is running (e.g. first converge or Molecule). |
 | `hermes_gateway_skip_docker` | bool | no | `false` | Skip the `docker_container` restart handler. Set `true` in Molecule/CI environments without Docker access. |
-| `hermes_config_extra` | dict | no | `{}` | Dict merged verbatim into the top level of `config.yaml`. Use this for schema fields not explicitly modelled by the template. |
+| `hermes_config_extra` | dict | no | `{}` | Dict merged recursively into the live `config.yaml` after the role-managed keys. Use this for schema fields the role doesn't model. Removing a key here does not remove it from the host. |
+| `hermes_uid` / `hermes_gid` | int | no | `10000` | UID/GID the `hermes` container runs as (its PUID/PGID). Must match the `hermes` role. They own `config.yaml`, the profile directories and `SOUL.md`. |
+| `hermes_gateway_deploy_group` | str | no | `docker` | Unused since 1.14.0 (the profile directories and `SOUL.md` belong to `hermes_uid:hermes_gid`). Kept so existing inventories still validate. |
 | `hermes_gateway_deploy_mode` | str | no | `docker` | `docker` (Compose, gateway runs inside the `hermes` container) or `quadlet` (separate `hermes-gateway` Podman container managed by systemd). |
 | `hermes_gateway_container_state` | str | no | `present` | Quadlet mode only. `absent` stops and removes the `hermes-gateway` container and its unit, while `config.yaml`, profiles and `SOUL.md` are still rendered for the `hermes` role's container. Use it to retire the gateway container once another process owns Discord and the API. |
 
@@ -53,10 +54,10 @@ None declared in `meta/main.yml`. Practically this role is a companion to `danmw
 ## What the Role Does
 
 1. Asserts that `hermes_data_dir` and `hermes_profiles` are non-empty.
-2. Ensures `{{ hermes_data_dir }}/profiles/<name>/` exists for each profile (`ansible:docker`, 0755).
+2. Ensures `{{ hermes_data_dir }}/profiles/<name>/` exists for each profile (`hermes_uid:hermes_gid`, 0755). The `hermes` container's entrypoint chowns the data directory to its PUID/PGID on every start, so any other owner would be flipped back and reported as a change on every run.
 3. Runs `hermes profile create <name>` inside the container via `community.docker.docker_container_exec` for each profile (skipped when `hermes_gateway_create_profiles: false`; idempotent — tolerates "already exists" exit).
-4. Renders `{{ hermes_data_dir }}/config.yaml` from `config.yaml.j2` (`ansible:docker`, 0600, `no_log`).
-5. Renders `{{ hermes_data_dir }}/profiles/<name>/SOUL.md` for each profile where `soul` is defined (`ansible:docker`, 0644).
+4. Merges the Ansible-owned keys into the live `{{ hermes_data_dir }}/config.yaml` (`hermes_uid:hermes_gid`, 0640, `no_log`): `model` (dropping the legacy `model.model` key, which Hermes reads in preference to `model.default`), `gateway.platforms.discord` when a profile has a Discord gateway, then `hermes_config_extra`. Keys Hermes writes itself, such as `_config_version`, `gateway.multiplex_profiles`, `model.options` and settings changed from chat, are kept. The file is written only when the merged mapping differs from what's on disk, and a debug task names the top-level keys that change, since `--diff` can't show the file. Before 1.14.0 the file was rendered from a template, which dropped those keys on every run; losing `_config_version` re-runs every config migration on the next start.
+5. Renders `{{ hermes_data_dir }}/profiles/<name>/SOUL.md` for each profile where `soul` is defined (`hermes_uid:hermes_gid`, 0644).
 
 A `Restart hermes container` handler fires when `config.yaml` or any `SOUL.md` changes, issuing a `docker restart` on `hermes_container_name` so the agent picks up the new config without a full compose redeploy. The handler is skipped when `hermes_gateway_skip_docker: true`. In quadlet mode the equivalent `Restart hermes Quadlet container` handler restarts `<hermes_container_name>.service` (tolerating hosts where that unit does not exist), and `Restart hermes-gateway service` restarts the gateway unit while `hermes_gateway_container_state` is `present`.
 
@@ -64,7 +65,7 @@ With `hermes_gateway_container_state: absent` (quadlet mode) steps 1–5 still r
 
 ## Notes
 
-- **Discord gateway**: the template extracts the first Discord gateway it finds across all profiles and writes it as the single top-level `gateway:` block in `config.yaml`. Hermes Agent supports only one active gateway at a time; multi-gateway support is not currently modelled.
+- **Discord gateway**: the role takes the first Discord gateway it finds across all profiles and merges it into `config.yaml` as `gateway.platforms.discord`. Hermes Agent supports only one active gateway at a time; multi-gateway support is not currently modelled.
 - **One process per Discord bot token**: the gateway container logs in to Discord with the token from `hermes_profiles`. Do not also give that token to the `hermes` role (`hermes_discord_bot_token`) or to `hermes_native` (`hermes_native_discord_bot_token`) for the same bot, on this host or any other; every process holding the token receives and answers every message. Omit `gateways` from the profile when another role owns Discord. Note that this container mounts only `config.yaml` and `profiles/` from `hermes_data_dir`, so its sessions, memory and cron state do not persist across restarts.
 - **`hermes_container_name` and `hermes_data_dir`** share the `hermes_` prefix (not `hermes_gateway_`) intentionally — they are the shared contract between this role and the `hermes` role. Keep them in sync.
 - **Profile `soul`** values are written verbatim into `SOUL.md`. Multi-line YAML block scalars work well here.

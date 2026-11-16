@@ -19,15 +19,34 @@
         src: /opt/hermes/data/config.yaml
       register: hermes_gateway_config_contents
 
-    - name: Assert config.yaml contains model and gateway config
+    - name: Assert config.yaml holds the managed keys and keeps the Hermes-written ones
       vars:
-        rendered: "{{ hermes_gateway_config_contents.content | b64decode }}"
+        cfg: "{{ hermes_gateway_config_contents.content | b64decode | from_yaml }}"
       ansible.builtin.assert:
         that:
-          - "'provider: anthropic' in rendered"
-          - "'model: claude-sonnet-4-6' in rendered"
-          - "'discord' in rendered"
-          - "'test-discord-token' in rendered"
+          - cfg.model.provider == 'anthropic'
+          - cfg.model.default == 'claude-sonnet-4-6'
+          - "'model' not in cfg.model"
+          - cfg.model.options.reasoning == 'high'
+          - cfg._config_version == 53
+          - cfg.gateway.multiplex_profiles
+          - cfg.gateway.platforms.discord.token == 'test-discord-token'
+          - cfg.gateway.platforms.discord.extra.allow_from == '123456789012345678'
+          - "'allow_admin_from' not in cfg.gateway.platforms.discord.extra"
+          - cfg.gateway.platforms.discord.home_channel == '555'
+          - cfg.approvals.mode == 'smart'
+        quiet: true
+      no_log: true
+
+    - name: Assert config.yaml and the profile directory belong to the container user
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - /opt/hermes/data/config.yaml
+        - /opt/hermes/data/profiles/assistant
+      register: hermes_gateway_owner_stat
+      failed_when: >-
+        hermes_gateway_owner_stat.stat.uid != 10000 or hermes_gateway_owner_stat.stat.gid != 10000
 
     - name: Stat the assistant SOUL.md file
       ansible.builtin.stat:

@@ -12,6 +12,33 @@
         mode: "0755"
       become: true
 
+    # What Hermes leaves in a live config: keys it writes itself, which the role
+    # must keep, and the legacy model.model the old template wrote, which it must
+    # drop. force: false writes it only once, so the idempotence run sees the
+    # role's own output.
+    - name: Ensure a live config.yaml with Hermes-written keys exists
+      ansible.builtin.copy:
+        content: |
+          _config_version: 53
+          gateway:
+            multiplex_profiles: true
+            platforms:
+              discord:
+                token: revoked-old-token
+                home_channel: "555"
+                extra:
+                  allow_from: "111111111111111111"
+                  allow_admin_from: "222222222222222222"
+          model:
+            provider: anthropic
+            model: claude-old-model
+            options:
+              reasoning: high
+        dest: /opt/hermes/data/config.yaml
+        mode: "0640"
+        force: false
+      become: true
+
     - name: Apply hermes_gateway role with test values
       ansible.builtin.import_role:
         name: danmwallace.hermes.hermes_gateway
@@ -21,6 +48,9 @@
         hermes_data_dir: /opt/hermes/data
         hermes_api_server_key: test-api-key-min8chars
         hermes_anthropic_api_key: test-anthropic-key
+        hermes_config_extra:
+          approvals:
+            mode: smart
         hermes_profiles:
           - name: assistant
             soul: |
@@ -30,5 +60,4 @@
                 bot_token: test-discord-token
                 allowed_users:
                   - "123456789012345678"
-                admin_users:
-                  - "123456789012345678"
+                admin_users: []

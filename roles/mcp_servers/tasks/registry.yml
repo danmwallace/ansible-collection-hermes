@@ -4,6 +4,32 @@
 # desktop agent (Super+A, Fix it) reads it directly. Secrets are {"credential": N}
 # references: hypr-mcp run decrypts env ones when the server starts, and hypr-mcp headers
 # (Claude Code's headersHelper) decrypts header ones when a url server connects.
+# The ask list lives in the root-owned machine layer: the user entry below is the user's own
+# file, and an edit there (by the user, or an agent acting as the user) could drop it. The
+# registry adds a list-only layer's lists to the user entry's (atomic-hyprland registry.py).
+# It's written before the user entry: writing the entry starts hypr-mcp sync, and a sync that
+# read the registry before the ask list existed would leave the tools unprompted until the
+# next one. In this order a racing sync fails closed.
+- name: Ensure the machine registry folder exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/atomic-hyprland/mcp.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: mcp_servers_server.ask_every_time | default([]) | length > 0
+
+- name: Ensure the ask list is in the machine layer for {{ mcp_servers_server.name }}
+  become: true
+  ansible.builtin.copy:
+    dest: "/etc/atomic-hyprland/mcp.d/{{ mcp_servers_server.name }}.json"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ {'askEveryTime': mcp_servers_server.ask_every_time} | to_nice_json(sort_keys=true) }}\n"
+  when: mcp_servers_server.ask_every_time | default([]) | length > 0
+
 - name: Ensure the registry folder exists
   become: true
   become_user: "{{ mcp_servers_user }}"
@@ -43,35 +69,27 @@
          | combine({'denyTools': mcp_servers_server.deny_tools} if mcp_servers_server.deny_tools is defined else {})
          | combine({'toolNotes': mcp_servers_server.tool_notes} if mcp_servers_server.tool_notes is defined else {}) }}
 
-# The ask list lives in the root-owned machine layer: the entry above is the user's own file,
-# and an edit there (by the user, or an agent acting as the user) could drop it. The registry
-# adds a list-only layer's lists to the user entry's (atomic-hyprland registry.py).
-- name: Ensure the machine registry folder exists
+# Removed after the user entry is written (so a racing sync still sees the old list), and only
+# when the file is the role's own: holding nothing but askEveryTime. A hand-written machine
+# definition of the same name is left alone.
+- name: Read the machine-layer file for {{ mcp_servers_server.name }}
   become: true
-  ansible.builtin.file:
-    path: /etc/atomic-hyprland/mcp.d
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  when: mcp_servers_server.ask_every_time | default([]) | length > 0
+  ansible.builtin.slurp:
+    src: "/etc/atomic-hyprland/mcp.d/{{ mcp_servers_server.name }}.json"
+  register: mcp_servers_machine_file
+  failed_when: false
+  check_mode: false  # read-only
+  when: mcp_servers_server.ask_every_time | default([]) | length == 0
 
-- name: Ensure the ask list is in the machine layer for {{ mcp_servers_server.name }}
-  become: true
-  ansible.builtin.copy:
-    dest: "/etc/atomic-hyprland/mcp.d/{{ mcp_servers_server.name }}.json"
-    owner: root
-    group: root
-    mode: "0644"
-    content: "{{ {'askEveryTime': mcp_servers_server.ask_every_time} | to_nice_json(sort_keys=true) }}\n"
-  when: mcp_servers_server.ask_every_time | default([]) | length > 0
-
-- name: Ensure no ask list is left in the machine layer for {{ mcp_servers_server.name }}
+- name: Ensure no ask list of the role's is left in the machine layer for {{ mcp_servers_server.name }}
   become: true
   ansible.builtin.file:
     path: "/etc/atomic-hyprland/mcp.d/{{ mcp_servers_server.name }}.json"
     state: absent
-  when: mcp_servers_server.ask_every_time | default([]) | length == 0
+  when:
+    - mcp_servers_server.ask_every_time | default([]) | length == 0
+    - mcp_servers_machine_file.content is defined
+    - (mcp_servers_machine_file.content | b64decode | from_json | list) == ['askEveryTime']
 
 # A host that moved here from Fedora KDE (claude_cli mode) still has Claude Code's entry,
 # the launcher and the old credentials; hypr-mcp leaves entries it didn't add alone.

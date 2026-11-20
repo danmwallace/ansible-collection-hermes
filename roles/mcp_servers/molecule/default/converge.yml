@@ -8,7 +8,7 @@
       command: /usr/bin/testsrv
       args: [serve]
       env: { LOG_LEVEL: info }
-      secrets: { ROUTER_PASS: "s3cr3t-value" }
+      secrets: { ROUTER_PASS: "s3cr3t-value" }  # molecule-test-only: fake value, not a real credential
       files:
         - { src: "{{ playbook_dir }}/files/routers.yaml", dest: "~/.testsrv/routers.yaml", mode: "0600" }
       read_only_tools: [list_things]
@@ -16,7 +16,7 @@
       name: webtest
       url: "https://web.test/mcp"
       headers: { X-Plain: "1" }
-      header_secrets: { Authorization: "Bearer h3ader-s3cret" }
+      header_secrets: { Authorization: "Bearer h3ader-s3cret" }  # molecule-test-only: fake value, not a real credential
       deny_tools: [edit_thing]
       ask_every_time: [run_thing]
       tool_notes: { run_thing: "stop it in the UI" }

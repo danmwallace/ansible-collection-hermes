@@ -30,7 +30,7 @@
           - cfg.model.options.reasoning == 'high'
           - cfg._config_version == 53
           - cfg.gateway.multiplex_profiles
-          - cfg.gateway.platforms.discord.token == 'test-discord-token'
+          - cfg.gateway.platforms.discord.token == 'test-discord-token'  # molecule-test-only: fake value, not a real credential
           - cfg.gateway.platforms.discord.extra.allow_from == '123456789012345678'
           - "'allow_admin_from' not in cfg.gateway.platforms.discord.extra"
           - cfg.gateway.platforms.discord.home_channel == '555'

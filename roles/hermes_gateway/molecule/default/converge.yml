@@ -24,7 +24,7 @@
             multiplex_profiles: true
             platforms:
               discord:
-                token: revoked-old-token
+                token: revoked-old-token  # molecule-test-only: fake value, not a real credential
                 home_channel: "555"
                 extra:
                   allow_from: "111111111111111111"
@@ -46,8 +46,8 @@
         hermes_gateway_create_profiles: false
         hermes_gateway_skip_docker: true
         hermes_data_dir: /opt/hermes/data
-        hermes_api_server_key: test-api-key-min8chars
-        hermes_anthropic_api_key: test-anthropic-key
+        hermes_api_server_key: test-api-key-min8chars  # molecule-test-only: fake value, not a real credential
+        hermes_anthropic_api_key: test-anthropic-key  # molecule-test-only: fake value, not a real credential
         hermes_config_extra:
           approvals:
             mode: smart
@@ -57,7 +57,7 @@
               You are a helpful assistant for testing.
             gateways:
               - type: discord
-                bot_token: test-discord-token
+                bot_token: test-discord-token  # molecule-test-only: fake value, not a real credential
                 allowed_users:
                   - "123456789012345678"
                 admin_users: []

@@ -14,4 +14,4 @@
             config:
               approvals:
                 mode: manual
-            api_server_key: molecule-key-0123456789abcdef
+            api_server_key: molecule-key-0123456789abcdef  # molecule-test-only: fake value, not a real credential

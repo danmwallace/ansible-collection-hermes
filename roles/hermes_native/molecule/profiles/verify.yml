@@ -16,6 +16,7 @@
     - name: Check the key line was added and the other line kept
       ansible.builtin.assert:
         that:
+          # molecule-test-only: fake value on the next line, not a real credential
           - (hermes_native_verify_env.content | b64decode).splitlines() | sort == ['API_SERVER_KEY=molecule-key-0123456789abcdef', 'OTHER=keep']
           - hermes_native_verify_stat.stat.mode == '0600'
           - hermes_native_verify_stat.stat.pw_name == 'hermes'
@@ -41,7 +42,7 @@
             hermes_native_user: hermes
             hermes_native_profiles:
               - name: desktop
-                api_server_key: tooshortkey
+                api_server_key: tooshortkey  # molecule-test-only: fake value, not a real credential
         - name: Fail, because the short key was accepted
           ansible.builtin.fail:
             msg: a key under 16 characters was accepted
@@ -50,7 +51,7 @@
           ansible.builtin.assert:
             that:
               - ansible_failed_result.msg is search('16')
-              - "'tooshortkey' not in (ansible_failed_result | to_json)"
+              - "'tooshortkey' not in (ansible_failed_result | to_json)"  # molecule-test-only: fake value, not a real credential
             quiet: true
 
     # A symlink planted by the hermes user must not let the play write a root-only file.
@@ -79,7 +80,7 @@
             hermes_native_user: hermes
             hermes_native_profiles:
               - name: desktop
-                api_server_key: molecule-key-0123456789abcdef
+                api_server_key: molecule-key-0123456789abcdef  # molecule-test-only: fake value, not a real credential
       rescue:
         - name: Note that the write was refused
           ansible.builtin.debug:
@@ -172,8 +173,8 @@
     - name: Check the key appears nowhere in it
       ansible.builtin.assert:
         that:
-          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stdout"
-          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stderr"
+          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stdout"  # molecule-test-only: fake value, not a real credential
+          - "'molecule-key-0123456789abcdef' not in hermes_native_verify_vvv.stderr"  # molecule-test-only: fake value, not a real credential
           - "'PLAY RECAP' in hermes_native_verify_vvv.stdout"
         fail_msg: "the key appeared in -vvv output (rc={{ hermes_native_verify_vvv.rc }})"
         quiet: true

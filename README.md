@@ -58,6 +58,11 @@ collections:
                   - "123456789012345678"
 ```
 
+## Testing
+
+The Molecule scenarios under `roles/*/molecule/` use fake credentials on purpose; each one is marked `# molecule-test-only`.
+Never put a real secret in a fixture. Real secrets always come from Ansible Vault, as in the example above.
+
 ## License
 
 MIT

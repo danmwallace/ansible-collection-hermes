@@ -8,10 +8,10 @@
         name: danmwallace.hermes.hermes
       vars:
         hermes_domain: test.local
-        hermes_dashboard_basic_auth_password: test-password-not-for-production
-        hermes_api_server_key: test-api-key-min8chars
-        hermes_anthropic_api_key: test-anthropic-key
-        hermes_discord_bot_token: test-discord-token
+        hermes_dashboard_basic_auth_password: test-password-not-for-production  # molecule-test-only: fake value, not a real credential
+        hermes_api_server_key: test-api-key-min8chars  # molecule-test-only: fake value, not a real credential
+        hermes_anthropic_api_key: test-anthropic-key  # molecule-test-only: fake value, not a real credential
+        hermes_discord_bot_token: test-discord-token  # molecule-test-only: fake value, not a real credential
         hermes_discord_allowed_users: ["111111111111111111", "222222222222222222"]
         hermes_discord_allowed_channels: ["333333333333333333"]
         hermes_skip_compose: true

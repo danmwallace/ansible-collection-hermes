@@ -49,12 +49,12 @@
           - "'API_SERVER_HOST=0.0.0.0' in rendered"
           - "'127.0.0.1' not in rendered"
           - "'HERMES_DASHBOARD=1' in rendered"
-          - "'HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=test-password-not-for-production' in rendered"
+          - "'HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=test-password-not-for-production' in rendered"  # molecule-test-only: fake value, not a real credential
           - "'API_SERVER_ENABLED=true' in rendered"
-          - "'API_SERVER_KEY=test-api-key-min8chars' in rendered"
-          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"
+          - "'API_SERVER_KEY=test-api-key-min8chars' in rendered"  # molecule-test-only: fake value, not a real credential
+          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"  # molecule-test-only: fake value, not a real credential
           - "'hermes-hermes-instance.test.local' in rendered"
-          - "'DISCORD_BOT_TOKEN=test-discord-token' in rendered"
+          - "'DISCORD_BOT_TOKEN=test-discord-token' in rendered"  # molecule-test-only: fake value, not a real credential
           - "'DISCORD_ALLOWED_USERS=111111111111111111,222222222222222222' in rendered"
           - "'DISCORD_ALLOWED_CHANNELS=333333333333333333' in rendered"
 
@@ -79,4 +79,4 @@
         rendered: "{{ hermes_env_contents.content | b64decode }}"
       ansible.builtin.assert:
         that:
-          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"
+          - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"  # molecule-test-only: fake value, not a real credential

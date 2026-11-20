@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `hermes_gateway` (retired): `hermes_gateway_image_tag` `v0.23.0` → `v0.23.3`, so it matches `hermes` (#23).
 - `hermes`: `hermes_image_tag` `v0.23.0` → `v0.23.3`, the latest upstream release and the current Docker Hub `stable` tag (#23). v0.23.2 fixes GHSA-p22p-9ph6-gmrh (CVE-2026-130164).
 - `hermes_native`: `hermes_native_repo_version` `v0.23.1` → `v0.23.3`, the latest upstream release (#24). `requires-python` (`>=3.11,<3.15`, 3.14 only) and the `all`/`discord` extras are unchanged since v0.23.1, so `hermes_native_python_version` and `hermes_native_uv_extras` stay as they are.
 - `claude_code`: `claude_code_version` `2.1.259` → `2.1.329`, the current npm release (#24). The README table, which said the default was `latest`, is corrected.

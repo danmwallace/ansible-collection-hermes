@@ -22,3 +22,33 @@
   when: hermes_native_gh_token | length > 0
   environment:
     HOME: "/home/{{ hermes_native_user }}"
+
+# `gh auth login --with-token` for a different account adds it next to the old
+# one and makes it active; the old token stays in hosts.yml, one
+# `gh auth switch` away. Log out every account but the active one, so swapping
+# the token for a machine account really takes the old identity off the host.
+- name: Read the github.com accounts gh holds
+  ansible.builtin.command:
+    cmd: gh auth status --hostname github.com --json hosts
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  register: hermes_native_gh_accounts
+  changed_when: false
+  check_mode: false
+  when: hermes_native_gh_token | length > 0
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"
+
+- name: Ensure gh holds no github.com account but the active one
+  ansible.builtin.command:
+    cmd: gh auth logout --hostname github.com --user {{ item }}
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  changed_when: true
+  # The default covers a skipped read (no token), where there is no stdout.
+  loop: >-
+    {{ ((hermes_native_gh_accounts.stdout | default('{}', true) | from_json).hosts | default({}))
+       .get('github.com', []) | rejectattr('active') | map(attribute='login') | list }}
+  when: hermes_native_gh_token | length > 0
+  environment:
+    HOME: "/home/{{ hermes_native_user }}"

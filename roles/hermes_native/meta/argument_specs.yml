@@ -52,6 +52,13 @@ argument_specs:
         type: str
         default: hermes@wallace.boston
         description: git config user.email set globally for the hermes user.
+      hermes_native_git_signing_key:
+        type: str
+        default: ""
+        description: >-
+          Path to the public key the hermes user signs commits and tags with
+          (gpg.format ssh, commit.gpgsign and tag.gpgsign on). Empty leaves
+          signing off.
       hermes_native_api_server_host:
         type: str
         default: "127.0.0.1"
@@ -150,7 +157,10 @@ argument_specs:
         type: str
         default: ""
         no_log: true
-        description: Fine-grained GitHub PAT for gh CLI auth. Supply from vault.
+        description: >-
+          GitHub token for gh CLI auth (a classic PAT for a machine account, or
+          a fine-grained PAT). Any other github.com account in gh is logged
+          out. Supply from vault.
       hermes_native_env_file:
         type: str
         default: /etc/hermes-agent/env

@@ -26,3 +26,22 @@
     state: present
   become: true
   become_user: "{{ hermes_native_user }}"
+
+# SSH signing reuses a key the agent already has, so there's no GPG keyring to
+# manage. Unset when the key is cleared, so signing never points at a key that
+# isn't wanted any more.
+- name: Ensure git signs commits and tags with the hermes user's SSH key
+  community.general.git_config:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    scope: global
+    state: "{{ 'present' if hermes_native_git_signing_key | length > 0 else 'absent' }}"
+  become: true
+  become_user: "{{ hermes_native_user }}"
+  loop:
+    - { name: gpg.format, value: ssh }
+    - { name: user.signingkey, value: "{{ hermes_native_git_signing_key }}" }
+    - { name: commit.gpgsign, value: "true" }
+    - { name: tag.gpgsign, value: "true" }
+  loop_control:
+    label: "{{ item.name }}"

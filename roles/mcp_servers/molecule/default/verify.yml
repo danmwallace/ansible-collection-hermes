@@ -12,7 +12,7 @@
       ansible.builtin.assert:
         that:
           - (mcp_servers_verify_registry.content | b64decode | from_json) == expected
-          - "'s3cr3t-value' not in (mcp_servers_verify_registry.content | b64decode)"
+          - "'s3cr3t-value' not in (mcp_servers_verify_registry.content | b64decode)"  # molecule-test-only: fake value, not a real credential
         quiet: true
       vars:
         expected:
@@ -32,7 +32,7 @@
       ansible.builtin.assert:
         that:
           - (mcp_servers_verify_web.content | b64decode | from_json) == expected
-          - "'h3ader-s3cret' not in (mcp_servers_verify_web.content | b64decode)"
+          - "'h3ader-s3cret' not in (mcp_servers_verify_web.content | b64decode)"  # molecule-test-only: fake value, not a real credential
         quiet: true
       vars:
         expected:
@@ -112,7 +112,7 @@
 
     - name: Check the header credential holds the whole header value
       ansible.builtin.assert:
-        that: mcp_servers_verify_hdr.stdout == 'Bearer h3ader-s3cret'
+        that: mcp_servers_verify_hdr.stdout == 'Bearer h3ader-s3cret'  # molecule-test-only: fake value, not a real credential
         quiet: true
 
     - name: Run the binary installed from the stand-in release
@@ -164,8 +164,8 @@
       ansible.builtin.shell:
         cmd: |
           set -e
-          ! grep -rqs s3cr3t-value /home/devreg /home/devcli --exclude=claude-calls.log
-          ! grep -rqs h3ader-s3cret /home/devreg /home/devcli --exclude=claude-calls.log
+          ! grep -rqs s3cr3t-value /home/devreg /home/devcli --exclude=claude-calls.log  # molecule-test-only: fake value, not a real credential
+          ! grep -rqs h3ader-s3cret /home/devreg /home/devcli --exclude=claude-calls.log  # molecule-test-only: fake value, not a real credential
           test "$(stat -c '%a %U' /home/devreg/.config/atomic-hyprland/credentials/testsrv-router_pass.cred)" = "600 devreg"
           test "$(stat -c '%a %U' /home/devcli/.local/share/mcp-servers/credentials/testsrv-router_pass.cred)" = "600 devcli"
           test "$(stat -c '%a %U' /home/devreg/.testsrv/routers.yaml)" = "600 devreg"
@@ -194,8 +194,8 @@
     - name: Check both paths deliver the secret to the server
       ansible.builtin.assert:
         that:
-          - mcp_servers_verify_decrypt.stdout == 's3cr3t-value'
-          - mcp_servers_verify_launch.stdout == 'serve info s3cr3t-value'
+          - mcp_servers_verify_decrypt.stdout == 's3cr3t-value'  # molecule-test-only: fake value, not a real credential
+          - mcp_servers_verify_launch.stdout == 'serve info s3cr3t-value'  # molecule-test-only: fake value, not a real credential
         quiet: true
 
 # Security regression: a symlink planted where a credential goes must not let the role
@@ -211,6 +211,7 @@
         # follow the link.
         cmd: |
           set -eo pipefail
+          # molecule-test-only: fake value on the next line, not a real credential
           printf trap-secret | systemd-creds encrypt --user --uid=devcli --name=trap-token.cred - /etc/mcp-servers-sentinel
           chown root:root /etc/mcp-servers-sentinel
           chmod 0644 /etc/mcp-servers-sentinel
@@ -235,7 +236,7 @@
             mcp_servers_platform: claude_cli
             mcp_servers_claude_bin: /usr/local/bin/claude
             mcp_servers_list:
-              - { name: trap, command: /usr/bin/testsrv, secrets: { TOKEN: "trap-secret" } }
+              - { name: trap, command: /usr/bin/testsrv, secrets: { TOKEN: "trap-secret" } }  # molecule-test-only: fake value, not a real credential
       rescue:
         - name: Note the role stopped (acceptable; writing through the link is not)
           ansible.builtin.debug:
@@ -267,6 +268,7 @@
         mcp_servers_user: devreg
         mcp_servers_platform: registry
         mcp_servers_list:
+          # molecule-test-only: fake value on the next line, not a real credential
           - { name: webtest, url: "https://web.test/mcp", header_secrets: { Authorization: "Bearer h3ader-s3cret" } }
 
     - name: Read the ask fragment's path
@@ -315,7 +317,7 @@
     mcp_servers_verify_server:
       name: movesrv
       command: /usr/bin/testsrv
-      secrets: { ROUTER_PASS: "move-secret" }
+      secrets: { ROUTER_PASS: "move-secret" }  # molecule-test-only: fake value, not a real credential
   tasks:
     - name: Set the server up the KDE way
       ansible.builtin.include_role:

@@ -36,7 +36,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_api_server_key` | str | **yes** | `""` | API authentication key (min 8 chars) for the OpenAI-compatible endpoint. **Supply from vault.** |
 | `hermes_native_profiles` | list of dict | no | `[]` | Additional profiles, served at `/p/<name>/`. Each entry has `name` (required), `config` (merged into `~/profiles/<name>/config.yaml`), and an optional `api_server_key`: the profile's own key, at least 16 characters, written to `~/profiles/<name>/.env`. **Supply `api_server_key` from vault.** |
 | `hermes_native_dashboard_password` | str | **yes** | `""` | Basic auth password for the web dashboard. **Supply from vault.** |
-| `hermes_native_gh_token` | str | **yes** | `""` | Fine-grained GitHub PAT for `gh` CLI auth. **Supply from vault.** |
+| `hermes_native_gh_token` | str | **yes** | `""` | GitHub token for `gh` CLI auth: a classic PAT for a machine account (fine-grained tokens can't reach another personal account's repos), or a fine-grained PAT. Any other github.com account `gh` holds is logged out. **Supply from vault.** |
 | `hermes_native_user` | str | no | `hermes` | OS user the agent runs as. |
 | `hermes_native_install_dir` | str | no | `/home/hermes/hermes-agent` | Directory where the source is cloned and the venv is created. |
 | `hermes_native_repo_url` | str | no | `https://github.com/NousResearch/hermes-agent` | Git URL for the hermes-agent source repo. |
@@ -46,6 +46,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_workspace_dir` | str | no | `/home/hermes/workspace` | Pre-created directory for repos the agent will work on. |
 | `hermes_native_git_user_name` | str | no | `Hermes` | `git config user.name` for the hermes user. |
 | `hermes_native_git_user_email` | str | no | `hermes@wallace.boston` | `git config user.email` for the hermes user. |
+| `hermes_native_git_signing_key` | str | no | `""` | Path to a public key the hermes user signs commits and tags with (`gpg.format ssh`, `commit.gpgsign`, `tag.gpgsign`). Empty leaves signing off, and clearing it unsets those keys. |
 | `hermes_native_api_server_port` | int | no | `8642` | Port the OpenAI-compatible API server listens on. |
 | `hermes_native_api_server_model_name` | str | no | `hermes-agent` | Model name advertised by the API server (`API_SERVER_MODEL_NAME`). |
 | `hermes_native_env_file` | str | no | `/etc/hermes-agent/env` | Path of the `EnvironmentFile` read by the systemd service unit. |
@@ -109,9 +110,10 @@ running Traefik instance with a `conf.d/` file provider is expected (provided by
 8. **Register with Traefik**: when `hermes_native_dashboard_traefik_enabled: true`, writes
    `hermes-dashboard.yml` into `hermes_native_traefik_conf_dir` so Traefik picks up the HTTPS
    route automatically.
-9. **Configure git and gh**: sets `user.name`/`user.email` globally for the hermes user,
-   configures an HTTPS credential helper backed by `gh auth token`, and authenticates `gh`
-   with `hermes_native_gh_token`.
+9. **Configure git and gh**: sets `user.name`/`user.email` globally for the hermes user
+   (plus SSH commit signing when `hermes_native_git_signing_key` is set), configures an HTTPS
+   credential helper backed by `gh auth token`, authenticates `gh` with
+   `hermes_native_gh_token`, and logs out every other github.com account `gh` holds.
 10. **Provision profiles**: for each `hermes_native_profiles` entry, creates
     `~/profiles/<name>/` (0700) and merges its `config` into `config.yaml`. For entries with
     `api_server_key`, it checks that each key is at least 16 characters, then makes sure the
@@ -151,6 +153,14 @@ env file, config.yaml, or the respective systemd unit changes.
     - that a short key fails without being shown;
     - that a planted symlink, on `.env` or on the profile folder, leaves the root-owned target untouched;
     - that the key appears nowhere in `-vvv` output.
+- **Swapping the GitHub identity**: `gh auth login --with-token` with a token for another
+  account adds that account next to the old one and makes it active. The old token stays in
+  `~/.config/gh/hosts.yml`, one `gh auth switch` away. So the role logs out every github.com
+  account except the active one; the first run after a swap reports that logout as a change.
+- **Signed commits need the key on GitHub too**: register the same public key on the account
+  as a *signing* key (separate from an authentication key), or GitHub shows the commits as
+  "Unverified". Pushes go over HTTPS with the `gh` token, so the key doesn't need to be an
+  authentication key unless something pushes over SSH.
 - **Platform-specific**: the role targets Fedora only. `dnf` tasks will fail on Debian/Ubuntu
   hosts.
 

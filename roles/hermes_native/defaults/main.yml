@@ -34,6 +34,10 @@ hermes_native_workspace_dir: /home/hermes/workspace
 # Git identity the agent commits as
 hermes_native_git_user_name: "Hermes"
 hermes_native_git_user_email: "hermes@wallace.boston"
+# Public key file the agent signs commits and tags with (SSH signing). Empty
+# leaves signing off. Register the same key on the GitHub account as a signing
+# key, or the commits show as "Unverified".
+hermes_native_git_signing_key: ""
 
 # API server (exposes OpenAI-compatible endpoint for external callers)
 hermes_native_api_server_host: "127.0.0.1"

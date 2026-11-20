@@ -5,6 +5,20 @@ All notable changes to this collection will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-11-20
+
+### Added
+
+- `hermes_native`: `hermes_native_git_signing_key` turns on SSH commit and tag signing for the hermes user (`gpg.format ssh`, `user.signingkey`, `commit.gpgsign`, `tag.gpgsign`). Empty, the default, leaves signing off; clearing it unsets the keys.
+
+### Fixed
+
+- `hermes_native`: after `gh` logs in with `hermes_native_gh_token`, every other github.com account it holds is logged out. Logging in with a token for a different account (moving the agent from a personal token to a machine account) used to leave the old token in `hosts.yml` as an inactive account the agent could switch back to.
+
+### Changed
+
+- `hermes_native`: `hermes_native_gh_token` is documented as any GitHub token, not only a fine-grained PAT. A machine account needs a classic PAT, because fine-grained tokens can't target repos owned by another personal account.
+
 ## [1.14.0] - 2026-11-16
 
 ### Fixed

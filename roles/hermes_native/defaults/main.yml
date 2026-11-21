@@ -10,7 +10,7 @@ hermes_native_install_dir: /home/hermes/hermes-agent
 hermes_native_repo_url: https://github.com/NousResearch/hermes-agent
 
 # Git branch/tag to check out
-hermes_native_repo_version: v0.23.1
+hermes_native_repo_version: v0.23.3
 
 # Python the venv is built with (major.minor, as `uv venv --python` takes it).
 # Upstream supports one Python per release and locks uv.lock for it only

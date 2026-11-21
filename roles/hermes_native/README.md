@@ -40,7 +40,7 @@ auth boundary, and the API server requires its key on any non-loopback bind).
 | `hermes_native_user` | str | no | `hermes` | OS user the agent runs as. |
 | `hermes_native_install_dir` | str | no | `/home/hermes/hermes-agent` | Directory where the source is cloned and the venv is created. |
 | `hermes_native_repo_url` | str | no | `https://github.com/NousResearch/hermes-agent` | Git URL for the hermes-agent source repo. |
-| `hermes_native_repo_version` | str | no | `v0.23.1` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
+| `hermes_native_repo_version` | str | no | `v0.23.3` | Branch or tag to check out. The default is a pinned upstream release and moves when the collection is updated; set it in inventory to stay on a version. |
 | `hermes_native_python_version` | str | no | `"3.14"` | Python (major.minor) the venv is built with. Upstream supports one Python per release and `uv.lock` only resolves for it (3.14 since v0.23.0); a venv built with another version is removed, rebuilt and re-synced. Change it together with `hermes_native_repo_version` when a release moves to a new Python. |
 | `hermes_native_uv_extras` | list | no | `[all, discord]` | Extras for `uv sync --extra`. Since v0.23.0 upstream's `all` covers tooling only; messaging platforms (`discord`, `telegram`, ...) are separate extras. The list is recorded in `venv/.ansible-uv-extras`; changing it re-runs the sync. |
 | `hermes_native_workspace_dir` | str | no | `/home/hermes/workspace` | Pre-created directory for repos the agent will work on. |

@@ -15,7 +15,7 @@ This role does **not** authenticate. After deployment, the target user must run 
 | Variable | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `claude_code_user` | str | no | `hermes` | OS user under whose home directory `~/.claude/` is created. |
-| `claude_code_version` | str | no | `latest` | npm package version. `latest` always installs newest; pin with e.g. `1.0.3`. |
+| `claude_code_version` | str | no | `"2.1.329"` | npm package version. Pinned by default for reproducible installs; `latest` always installs the newest release. |
 | `claude_code_npm_scope` | str | no | `global` | npm install scope. `global` installs to `/usr/lib/node_modules` (requires root). |
 | `claude_code_config_dir` | str | no | `/home/{{ claude_code_user }}/.claude` | Path to the user's Claude config directory. |
 | `claude_code_global_claude_md` | str | no | `""` | Contents of `~/.claude/CLAUDE.md`. Written only when non-empty. |

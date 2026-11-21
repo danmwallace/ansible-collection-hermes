@@ -23,6 +23,7 @@ documentation: https://github.com/danmwallace/ansible-collection-hermes
 homepage: https://github.com/danmwallace/ansible-collection-hermes
 issues: https://github.com/danmwallace/ansible-collection-hermes/issues
 build_ignore:
+  - renovate.json
   - .ansible
   - .claude
   - .superpowers

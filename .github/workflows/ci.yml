@@ -72,3 +72,5 @@ jobs:
           python-version: "3.12"
       - name: Audit git tags against released versions
         run: python3 .github/scripts/sync_tags.py --all-versions .
+      - name: Check tags, galaxy.yml and Galaxy agree
+        run: python3 .github/scripts/release_guard.py audit

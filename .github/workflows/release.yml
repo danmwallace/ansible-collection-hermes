@@ -4,37 +4,59 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Manual re-run on a tag, for the rare case where publishing a version older
+  # than Galaxy's latest is intended. Pick the tag in "Use workflow from".
+  workflow_dispatch:
+    inputs:
+      allow_backfill:
+        description: Publish even if this version is older than Galaxy's latest
+        type: boolean
+        default: false
 
 jobs:
   publish:
     name: Publish to Ansible Galaxy
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible_collections/danmwallace/hermes
+    env:
+      TAG_NAME: ${{ github.ref_name }}
     steps:
+      - name: Require a tag ref
+        if: github.ref_type != 'tag'
+        working-directory: .
+        run: |
+          echo "::error::run this workflow on a v* tag, not $GITHUB_REF_TYPE $TAG_NAME"
+          exit 1
       - name: Checkout into collection path
         uses: actions/checkout@v6
         with:
           path: ansible_collections/danmwallace/hermes
+          # Full history so preflight can confirm the tag is on main.
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Preflight (tag matches galaxy.yml, on main, not yet on Galaxy)
+        id: preflight
+        run: >-
+          python3 .github/scripts/release_guard.py preflight --tag "$TAG_NAME"
+          ${{ inputs.allow_backfill && '--allow-backfill' || '' }}
       - name: Install ansible-core
+        if: steps.preflight.outputs.publish == 'true'
         run: pip install ansible-core
-      - name: Verify tag matches galaxy.yml version
-        working-directory: ansible_collections/danmwallace/hermes
-        env:
-          TAG_NAME: ${{ github.ref_name }}
-        run: |
-          GALAXY_VERSION=$(python -c "import yaml; print(yaml.safe_load(open('galaxy.yml'))['version'])")
-          TAG_VERSION="${TAG_NAME#v}"
-          if [ "$GALAXY_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::tag $TAG_NAME does not match galaxy.yml version $GALAXY_VERSION"
-            exit 1
-          fi
       - name: Build collection
-        working-directory: ansible_collections/danmwallace/hermes
+        if: steps.preflight.outputs.publish == 'true'
         run: ansible-galaxy collection build --output-path dist/
+      - name: Check tarball holds only files tracked at the tag
+        if: steps.preflight.outputs.publish == 'true'
+        run: python3 .github/scripts/release_guard.py check-tarball --tag "$TAG_NAME" dist/*.tar.gz
       - name: Publish to Galaxy
-        working-directory: ansible_collections/danmwallace/hermes
+        if: steps.preflight.outputs.publish == 'true'
         env:
           GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
         run: ansible-galaxy collection publish dist/*.tar.gz --token "$GALAXY_TOKEN"
+      - name: Verify Galaxy serves the tarball that was built
+        if: steps.preflight.outputs.publish == 'true'
+        run: python3 .github/scripts/release_guard.py verify-published --tag "$TAG_NAME" dist/*.tar.gz

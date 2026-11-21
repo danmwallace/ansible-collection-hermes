@@ -1,0 +1,3 @@
+v1.2.4  # publish failed (log expired), almost certainly the import: new claude_code role had no README.md (fixed in 1.2.6)
+v1.2.5  # Galaxy import failed: claude_code README.md still missing (fixed in 1.2.6)
+v1.3.2  # publish failed on a stale GALAXY_API_KEY; commit also tracked .superpowers/ notes (1.3.3 replaces it)

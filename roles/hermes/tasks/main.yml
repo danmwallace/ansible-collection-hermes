@@ -77,6 +77,21 @@
   become: true
   register: _hermes_config_stat
 
+# The data directory belongs to the container user, and the agent runs shell
+# commands. The read below runs as root, so a symlink planted at config.yaml
+# would merge a root-only file into one the agent can read. stat doesn't follow
+# links, so a link shows up here as not a regular file.
+- name: Assert the live config.yaml is a regular file, not a symlink
+  ansible.builtin.assert:
+    that:
+      - _hermes_config_stat.stat.isreg
+      - not _hermes_config_stat.stat.islnk
+    fail_msg: >-
+      {{ hermes_data_dir }}/config.yaml exists but is not a regular file (symlink or
+      other); refusing to read it as root. Inspect it and replace it with a regular file.
+    quiet: true
+  when: _hermes_config_stat.stat.exists
+
 - name: Read the live config.yaml
   ansible.builtin.slurp:
     src: "{{ hermes_data_dir }}/config.yaml"

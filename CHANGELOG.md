@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `hermes`: `hermes_terminal_env` writes `TERMINAL_ENV` to `data/.env` (#57). The setup wizard records the terminal backend there, and the role renders the whole file, so on ai01 a real run would have stripped the line and restarted Hermes. Unset, the default, leaves the line out, so the file is unchanged on hosts that don't set it.
+
 ### Changed
 
 - `hermes_gateway` (retired): `hermes_gateway_image_tag` `v0.23.0` → `v0.23.3`, so it matches `hermes` (#23).

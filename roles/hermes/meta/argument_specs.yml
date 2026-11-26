@@ -129,6 +129,13 @@ argument_specs:
         type: str
         no_log: true
         default: ""
+      hermes_terminal_env:
+        description: >-
+          Value written to data/.env as TERMINAL_ENV, the terminal backend the Hermes
+          setup wizard records there (e.g. "local"). The role renders the whole .env,
+          so a host where the wizard wrote TERMINAL_ENV must set this, or each run
+          strips the line and restarts Hermes. Unset or empty leaves the line out.
+        type: str
       hermes_discord_bot_token:
         description: >-
           Discord bot token passed as DISCORD_BOT_TOKEN to the container, which makes

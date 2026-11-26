@@ -105,3 +105,44 @@
       ansible.builtin.assert:
         that:
           - "'TERMINAL_ENV' not in hermes_env_without_terminal"
+
+    - name: Stat config.yaml
+      ansible.builtin.stat:
+        path: /opt/hermes/data/config.yaml
+      register: hermes_config_stat
+
+    - name: Assert config.yaml is owned by the container user with mode 0640
+      ansible.builtin.assert:
+        that:
+          - hermes_config_stat.stat.exists
+          - hermes_config_stat.stat.mode == '0640'
+          - hermes_config_stat.stat.uid == 10000
+          - hermes_config_stat.stat.gid == 10000
+
+    - name: Read merged config.yaml
+      ansible.builtin.slurp:
+        src: /opt/hermes/data/config.yaml
+      register: hermes_config_contents
+
+    # The idempotence step already shows a second run doesn't rewrite the file.
+    - name: Assert the Ansible-owned keys are merged and app-written keys are kept
+      vars:
+        cfg: "{{ hermes_config_contents.content | b64decode | from_yaml }}"
+      ansible.builtin.assert:
+        that:
+          # hermes_default_model; the legacy model.model key is dropped
+          - cfg.model.provider == 'anthropic'
+          - cfg.model.default == 'claude-opus-5-5'
+          - "'model' not in cfg.model"
+          - cfg.model.options.temperature == 0.2
+          # hermes_config_extra, merged recursively
+          - cfg.max_concurrent_sessions == 10
+          - cfg.approvals.mode == 'smart'
+          - cfg.approvals.cron_mode == 'approve'
+          - cfg.terminal.backend == 'local'
+          # keys Hermes wrote, at the top level and beside merged ones, survive
+          - cfg._config_version == 7
+          - cfg.gateway.multiplex_profiles
+          - cfg.display.theme == 'dark'
+          - cfg.approvals.timeout == 120
+          - cfg.terminal.shell == '/bin/bash'

@@ -159,6 +159,22 @@ argument_specs:
         type: list
         elements: str
         default: []
+      hermes_default_model:
+        description: >-
+          Global model merged into the live config.yaml as model.provider and
+          model.default (plus model.base_url and model.api_key when base_url is set).
+          Keys provider and model are required; base_url and api_key are optional.
+          The legacy model.model key is removed, because Hermes reads it in preference
+          to model.default. Empty (the default) leaves model alone.
+        type: dict
+        default: {}
+      hermes_config_extra:
+        description: >-
+          Dict merged recursively into the live config.yaml after hermes_default_model.
+          Keys Hermes writes itself are kept. Removing a key here does not remove it
+          from the host. Empty (the default) leaves the file alone.
+        type: dict
+        default: {}
       hermes_pull_policy:
         description: >-
           Image pull policy passed to docker_compose_v2.

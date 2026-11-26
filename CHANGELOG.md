@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `hermes`: `hermes_terminal_env` writes `TERMINAL_ENV` to `data/.env` (#57). The setup wizard records the terminal backend there, and the role renders the whole file, so on ai01 a real run would have stripped the line and restarted Hermes. Unset, the default, leaves the line out, so the file is unchanged on hosts that don't set it.
+- `hermes`: merges `hermes_default_model` and `hermes_config_extra` into the live `config.yaml` and restarts Hermes when that changes (#58). This is `hermes_gateway`'s merge with the same variable names and semantics: a recursive merge that keeps every key Hermes wrote, drops the legacy `model.model` key, and writes the file only when the merged mapping differs. ai01's host_vars work unchanged, so `hermes_gateway` can be dropped from its playbook. Both default to `{}`, which leaves the file alone; `hermes_gateway` defaulted `hermes_default_model` to `claude-sonnet-4-6`, so a host that relied on that default must now set it. The Discord keys `hermes_gateway` wrote under `gateway.platforms.discord` are not ported; this role configures Discord through the container environment.
+
+### Fixed
+
+- `hermes`: the `Restart hermes service` handler runs only in `quadlet` mode, so tasks shared by both modes can notify it.
 
 ### Changed
 

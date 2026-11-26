@@ -1,5 +1,41 @@
 ---
+# Seed a config.yaml shaped like one Hermes has written itself, so converge
+# merges into it rather than creating it, and verify can check that the keys
+# the role doesn't own survive.
 - name: Prepare molecule instance
   hosts: all
   gather_facts: false
-  tasks: []
+  tasks:
+    - name: Ensure the hermes data directory exists
+      ansible.builtin.file:
+        path: /opt/hermes/data
+        state: directory
+        owner: "10000"
+        group: "10000"
+        mode: "0750"
+
+    - name: Seed an app-written config.yaml
+      ansible.builtin.copy:
+        dest: /opt/hermes/data/config.yaml
+        owner: "10000"
+        group: "10000"
+        mode: "0640"
+        content: |
+          # written by hermes
+          _config_version: 7
+          model:
+            provider: anthropic
+            model: claude-legacy-pinned
+            default: claude-old
+            options:
+              temperature: 0.2
+          approvals:
+            mode: "off"
+            timeout: 120
+          terminal:
+            backend: docker
+            shell: /bin/bash
+          gateway:
+            multiplex_profiles: true
+          display:
+            theme: dark

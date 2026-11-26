@@ -16,6 +16,7 @@
     state: restarted
     daemon_reload: true
   become: true
+  when: hermes_deploy_mode == 'quadlet'
   tags:
     - molecule-notest
   register: _hermes_quadlet_restart

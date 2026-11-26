@@ -92,7 +92,7 @@ Hermes writes `data/config.yaml` itself: `_config_version` after a migration, `g
 - `hermes_config_extra` is then merged on top. Keys Hermes wrote beside yours, at any depth, are kept.
 - Removing a key from either variable leaves it on the host. Delete it from the file by hand.
 - With both variables empty (the default) the file is never written.
-- The role reads the file as root, so it refuses to run if `config.yaml` is a symlink or anything other than a regular file. The agent can write to the data directory, and a planted link would otherwise merge a root-only file into one the agent can read.
+- The role reads the file as root, so it refuses to run if `config.yaml` is a symlink or anything other than a regular file. The agent can write to the data directory, and a planted link would otherwise merge a root-only file into one the agent can read. The check and the read are a single `O_NOFOLLOW` open (`files/read_regular_file.py`), so there's no window to swap a link in between them.
 
 This is the merge `hermes_gateway` used to do, with the same variable names, so inventories that set them for that role work unchanged. Running both roles with the same values is harmless: the second merge finds nothing to change. Unlike `hermes_gateway`, this role doesn't write `gateway.platforms.discord`; Discord is configured through `hermes_discord_bot_token` and the container environment.
 

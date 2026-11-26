@@ -71,34 +71,30 @@
 # merged mapping differs from what is on disk; Hermes reformatting the file is
 # not a change. Ported from hermes_gateway (same variables, same semantics) so
 # that role can be dropped. With both variables empty nothing here changes.
-- name: Check whether a config.yaml exists in the data directory
-  ansible.builtin.stat:
-    path: "{{ hermes_data_dir }}/config.yaml"
-  become: true
-  register: _hermes_config_stat
-
 # The data directory belongs to the container user, and the agent runs shell
-# commands. The read below runs as root, so a symlink planted at config.yaml
-# would merge a root-only file into one the agent can read. stat doesn't follow
-# links, so a link shows up here as not a regular file.
-- name: Assert the live config.yaml is a regular file, not a symlink
-  ansible.builtin.assert:
-    that:
-      - _hermes_config_stat.stat.isreg
-      - not _hermes_config_stat.stat.islnk
-    fail_msg: >-
-      {{ hermes_data_dir }}/config.yaml exists but is not a regular file (symlink or
-      other); refusing to read it as root. Inspect it and replace it with a regular file.
-    quiet: true
-  when: _hermes_config_stat.stat.exists
-
-- name: Read the live config.yaml
-  ansible.builtin.slurp:
-    src: "{{ hermes_data_dir }}/config.yaml"
+# commands, so a symlink planted at config.yaml would make this root read merge
+# a root-only file into a config the agent can read. A stat-then-slurp check
+# leaves a window to swap one in; the script refuses links and non-regular
+# files in the same open() that reads the file. No module offers O_NOFOLLOW.
+- name: Read the live config.yaml without following links
+  ansible.builtin.script:
+    cmd: read_regular_file.py {{ (hermes_data_dir ~ '/config.yaml') | quote }}
+    executable: python3
   become: true
-  register: _hermes_config_slurp
-  when: _hermes_config_stat.stat.exists
+  register: _hermes_config_read
+  changed_when: false
+  failed_when: false
+  check_mode: false
   no_log: true
+
+- name: Assert the live config.yaml was readable as a regular file
+  ansible.builtin.assert:
+    that: _hermes_config_read.rc in [0, 3]
+    fail_msg: >-
+      {{ hermes_data_dir }}/config.yaml is a symlink or not a regular file, or could
+      not be read (rc {{ _hermes_config_read.rc }}); refusing to merge it as root.
+      Inspect it and replace it with a regular file.
+    quiet: true
 
 # model is combined non-recursively first to drop the legacy `model.model` key:
 # Hermes reads `model.model` in preference to the canonical `model.default`, so
@@ -115,8 +111,8 @@
          | combine(hermes_config_extra, recursive=true) }}
   vars:
     _hermes_cfg_live: >-
-      {{ (_hermes_config_slurp.content | b64decode | from_yaml | default({}, true))
-         if _hermes_config_stat.stat.exists else {} }}
+      {{ (_hermes_config_read.stdout | from_yaml | default({}, true))
+         if _hermes_config_read.rc == 0 else {} }}
     _hermes_cfg_model: >-
       {{ {'provider': hermes_default_model.provider, 'default': hermes_default_model.model}
          | combine({'base_url': hermes_default_model.base_url,

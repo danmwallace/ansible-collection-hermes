@@ -46,6 +46,8 @@ The dashboard is accessible at `hermes-<inventory_hostname>.<hermes_domain>` and
 | `hermes_discord_bot_token` | str | no | `""` | Discord bot token passed as `DISCORD_BOT_TOKEN`; makes this container the bot's gateway connection. Empty disables Discord here. See **Notes**. **Supply from vault.** |
 | `hermes_discord_allowed_users` | list | yes* | `[]` | Discord user IDs allowed to talk to the bot. Required when `hermes_discord_bot_token` is set. |
 | `hermes_discord_allowed_channels` | list | no | `[]` | Discord channel IDs the bot responds in. Empty means every channel the bot can see. |
+| `hermes_default_model` | dict | no | `{}` | Global model merged into the live `config.yaml` as `model.provider` and `model.default` (plus `base_url` and `api_key` when `base_url` is set). Accepts `provider`, `model`, and optionally `base_url` and `api_key`. Empty leaves `model` alone. See **config.yaml**. |
+| `hermes_config_extra` | dict | no | `{}` | Dict merged recursively into the live `config.yaml` after `hermes_default_model`. Removing a key here does not remove it from the host. See **config.yaml**. |
 | `hermes_pull_policy` | str | no | `missing` | Image pull policy for `docker_compose_v2` (`always`, `missing`, `never`, `build`). |
 | `hermes_skip_compose` | bool | no | `false` | Skip the `docker_compose_v2` deploy task and its handler. Set `true` in Molecule/CI environments without Docker access. |
 
@@ -77,13 +79,26 @@ None declared in `meta/main.yml`. In practice the target host needs Docker insta
 4. Ensures `/opt/hermes` and `/opt/hermes/data` exist (`ansible:docker`, 0755).
 5. Renders `data/.env` from `env.j2` (`ansible:docker`, 0600, `no_log`).
 6. Renders `docker-compose.yml` from `docker-compose.yml.j2` (`ansible:docker`, 0600, `no_log`).
-7. Brings the stack up via `community.docker.docker_compose_v2` (skipped when `hermes_skip_compose: true`).
+7. Merges `hermes_default_model` and `hermes_config_extra` into the live `data/config.yaml` and writes it only when the result differs (see **config.yaml**).
+8. Brings the stack up via `community.docker.docker_compose_v2` (skipped when `hermes_skip_compose: true`).
 
 A `Restart hermes compose project` handler fires when either rendered file changes, so config edits take effect without manual intervention. The handler is also skipped when `hermes_skip_compose: true`.
 
+## config.yaml
+
+Hermes writes `data/config.yaml` itself: `_config_version` after a migration, `gateway.multiplex_profiles`, `model.options` and settings changed from chat or the dashboard. So the role doesn't template it. It reads the live file, merges its keys in recursively, and writes the result (`hermes_uid:hermes_gid`, 0640, `no_log`) only when the merged mapping differs from what's on disk. Reformatting by Hermes is not a change. A debug task names the top-level keys that change, since `no_log` hides the diff. A write notifies the restart handler for the deploy mode.
+
+- `hermes_default_model` sets `model.provider` and `model.default`, and removes the legacy `model.model` key, which Hermes reads in preference to `model.default`.
+- `hermes_config_extra` is then merged on top. Keys Hermes wrote beside yours, at any depth, are kept.
+- Removing a key from either variable leaves it on the host. Delete it from the file by hand.
+- With both variables empty (the default) the file is never written.
+- The role reads the file as root, so it refuses to run if `config.yaml` is a symlink or anything other than a regular file. The agent can write to the data directory, and a planted link would otherwise merge a root-only file into one the agent can read. The check and the read are a single `O_NOFOLLOW` open (`files/read_regular_file.py`), so there's no window to swap a link in between them.
+
+This is the merge `hermes_gateway` used to do, with the same variable names, so inventories that set them for that role work unchanged. Running both roles with the same values is harmless: the second merge finds nothing to change. Unlike `hermes_gateway`, this role doesn't write `gateway.platforms.discord`; Discord is configured through `hermes_discord_bot_token` and the container environment.
+
 ## Notes
 
-- The `hermes_gateway` role in this same collection configures agent profiles, Discord gateways, and per-profile `SOUL.md` identity files. Apply it after this role on the same host. Both roles share `hermes_container_name` and `hermes_data_dir` — keep the values consistent.
+- The `hermes_gateway` role (retired) in this same collection configures agent profiles, Discord gateways, and per-profile `SOUL.md` identity files. This role now does its `config.yaml` merge, so a host that used `hermes_gateway` only for that can drop it. If you still apply it, do so after this role on the same host. Both roles share `hermes_container_name` and `hermes_data_dir` — keep the values consistent.
 - **One process per Discord bot token.** Discord delivers every message to every connection that logs in with a token, so two processes holding the same token both answer. Set the token in exactly one place per bot: `hermes_discord_bot_token` here, a `gateways` entry in `hermes_gateway`'s `hermes_profiles`, or `hermes_native_discord_bot_token`. Prefer this role when the container also owns scheduled jobs: cron delivery to Discord is blocked ("no gateway credentials configured") unless the process that runs the job holds the token, and this container is the one with persistent state under `hermes_data_dir`.
 - **`data/.env` is rendered whole.** Any line the role doesn't template is removed on the next run, which also restarts Hermes. The setup wizard (`hermes setup`) writes `TERMINAL_ENV` there; on a host where it did, set `hermes_terminal_env` to the same value (check with `sudo grep ^TERMINAL_ENV= /opt/hermes/data/.env`).
 - No host ports are published. Traffic reaches the dashboard and API server exclusively through Traefik. If you set `hermes_traefik_enabled: false`, you are responsible for exposing the ports.

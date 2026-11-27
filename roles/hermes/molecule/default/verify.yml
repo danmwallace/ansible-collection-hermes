@@ -105,3 +105,74 @@
       ansible.builtin.assert:
         that:
           - "'TERMINAL_ENV' not in hermes_env_without_terminal"
+
+    - name: Stat config.yaml
+      ansible.builtin.stat:
+        path: /opt/hermes/data/config.yaml
+      register: hermes_config_stat
+
+    - name: Assert config.yaml is owned by the container user with mode 0640
+      ansible.builtin.assert:
+        that:
+          - hermes_config_stat.stat.exists
+          - hermes_config_stat.stat.mode == '0640'
+          - hermes_config_stat.stat.uid == 10000
+          - hermes_config_stat.stat.gid == 10000
+
+    - name: Read merged config.yaml
+      ansible.builtin.slurp:
+        src: /opt/hermes/data/config.yaml
+      register: hermes_config_contents
+
+    # The idempotence step already shows a second run doesn't rewrite the file.
+    - name: Assert the Ansible-owned keys are merged and app-written keys are kept
+      vars:
+        cfg: "{{ hermes_config_contents.content | b64decode | from_yaml }}"
+      ansible.builtin.assert:
+        that:
+          # hermes_default_model; the legacy model.model key is dropped
+          - cfg.model.provider == 'anthropic'
+          - cfg.model.default == 'claude-opus-5-5'
+          - "'model' not in cfg.model"
+          - cfg.model.options.temperature == 0.2
+          # hermes_config_extra, merged recursively
+          - cfg.max_concurrent_sessions == 10
+          - cfg.approvals.mode == 'smart'
+          - cfg.approvals.cron_mode == 'approve'
+          - cfg.terminal.backend == 'local'
+          # keys Hermes wrote, at the top level and beside merged ones, survive
+          - cfg._config_version == 7
+          - cfg.gateway.multiplex_profiles
+          - cfg.display.theme == 'dark'
+          - cfg.approvals.timeout == 120
+          - cfg.terminal.shell == '/bin/bash'
+
+    - name: Plant a symlink and a FIFO in a scratch directory
+      ansible.builtin.shell: |
+        set -e
+        rm -rf /tmp/hermes-nofollow && mkdir /tmp/hermes-nofollow && cd /tmp/hermes-nofollow
+        printf 'a: 1\n' > regular.yaml
+        ln -s /etc/shadow link.yaml
+        mkfifo fifo.yaml
+      changed_when: true
+
+    - name: Run the no-follow reader against each case
+      ansible.builtin.script:
+        cmd: "{{ playbook_dir }}/../../files/read_regular_file.py /tmp/hermes-nofollow/{{ item }}"
+        executable: python3
+      loop: [regular.yaml, missing.yaml, link.yaml, fifo.yaml]
+      register: hermes_nofollow
+      failed_when: false
+      changed_when: false
+
+    - name: Assert regular files are read, missing ones are rc 3, links and FIFOs are refused
+      vars:
+        by_case: "{{ dict(hermes_nofollow.results | map(attribute='item') | zip(hermes_nofollow.results)) }}"
+      ansible.builtin.assert:
+        that:
+          - by_case['regular.yaml'].rc == 0
+          - (by_case['regular.yaml'].stdout | from_yaml).a == 1
+          - by_case['missing.yaml'].rc == 3
+          - by_case['link.yaml'].rc == 1
+          - "'root:' not in by_case['link.yaml'].stdout"
+          - by_case['fifo.yaml'].rc == 1

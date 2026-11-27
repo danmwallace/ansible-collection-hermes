@@ -64,6 +64,92 @@
   no_log: true
   notify: Restart hermes compose project
 
+# Hermes rewrites config.yaml itself: `_config_version` after a migration,
+# gateway.multiplex_profiles, model.options and settings changed from chat or
+# the dashboard. So the Ansible-owned keys are merged into the live mapping
+# rather than rendered from a template, and the file is written only when the
+# merged mapping differs from what is on disk; Hermes reformatting the file is
+# not a change. Ported from hermes_gateway (same variables, same semantics) so
+# that role can be dropped. With both variables empty nothing here changes.
+# The data directory belongs to the container user, and the agent runs shell
+# commands, so a symlink planted at config.yaml would make this root read merge
+# a root-only file into a config the agent can read. A stat-then-slurp check
+# leaves a window to swap one in; the script refuses links and non-regular
+# files in the same open() that reads the file. No module offers O_NOFOLLOW.
+- name: Read the live config.yaml without following links
+  ansible.builtin.script:
+    cmd: read_regular_file.py {{ (hermes_data_dir ~ '/config.yaml') | quote }}
+    executable: python3
+  become: true
+  register: _hermes_config_read
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Assert the live config.yaml was readable as a regular file
+  ansible.builtin.assert:
+    that: _hermes_config_read.rc in [0, 3]
+    fail_msg: >-
+      {{ hermes_data_dir }}/config.yaml is a symlink or not a regular file, or could
+      not be read (rc {{ _hermes_config_read.rc }}); refusing to merge it as root.
+      Inspect it and replace it with a regular file.
+    quiet: true
+
+# model is combined non-recursively first to drop the legacy `model.model` key:
+# Hermes reads `model.model` in preference to the canonical `model.default`, so
+# leaving it behind would pin the old model.
+- name: Merge the Ansible-owned keys into the live config
+  ansible.builtin.set_fact:
+    _hermes_config_current: "{{ _hermes_cfg_live }}"
+    _hermes_config_merged: >-
+      {{ (_hermes_cfg_live
+          | combine({'model': _hermes_cfg_live.model | default({}, true)
+                              | dict2items | rejectattr('key', 'eq', 'model') | items2dict})
+          | combine({'model': _hermes_cfg_model}, recursive=true)
+          if hermes_default_model | length > 0 else _hermes_cfg_live)
+         | combine(hermes_config_extra, recursive=true) }}
+  vars:
+    _hermes_cfg_live: >-
+      {{ (_hermes_config_read.stdout | from_yaml | default({}, true))
+         if _hermes_config_read.rc == 0 else {} }}
+    _hermes_cfg_model: >-
+      {{ {'provider': hermes_default_model.provider, 'default': hermes_default_model.model}
+         | combine({'base_url': hermes_default_model.base_url,
+                    'api_key': hermes_default_model.api_key | default('none')}
+                   if hermes_default_model.base_url is defined else {})
+         if hermes_default_model | length > 0 else {} }}
+  no_log: true
+
+- name: Report which top-level config keys the merge changes
+  ansible.builtin.debug:
+    msg: >-
+      config.yaml keys to update:
+      {%- set _ns = namespace(keys=[]) -%}
+      {%- for _k, _v in _hermes_config_merged.items() if _hermes_config_current.get(_k) != _v -%}
+      {%- set _ns.keys = _ns.keys + [_k] -%}
+      {%- endfor %} {{ _ns.keys | join(', ') }}
+  when: _hermes_config_merged != _hermes_config_current
+
+# Always no_log: the file can hold credentials Hermes stored there itself.
+- name: Write config.yaml when the merge changes it
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible — danmwallace.hermes.hermes
+      # Ansible owns model (when hermes_default_model is set) and the keys in
+      # hermes_config_extra; everything else Hermes writes here is kept.
+      {{ _hermes_config_merged | to_nice_yaml(indent=2) }}
+    dest: "{{ hermes_data_dir }}/config.yaml"
+    owner: "{{ hermes_uid }}"
+    group: "{{ hermes_gid }}"
+    mode: "0640"
+  become: true
+  when: _hermes_config_merged != _hermes_config_current
+  no_log: true
+  notify:
+    - Restart hermes compose project
+    - Restart hermes service
+
 - name: Deploy hermes via docker compose
   community.docker.docker_compose_v2:
     project_src: "{{ hermes_deploy_dir }}"

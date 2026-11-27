@@ -74,6 +74,15 @@ hermes_google_client_secret: ""
 hermes_gmail_refresh_token: ""
 hermes_gcal_refresh_token: ""
 
+# config.yaml in hermes_data_dir: these keys are merged recursively into the
+# live file, which Hermes also writes (migrations, settings changed from chat
+# or the dashboard). Every other key is kept. Empty (the default) leaves the
+# file alone. Same names and semantics as the retired hermes_gateway role.
+# hermes_default_model: {provider, model[, base_url, api_key]} -> model.provider/model.default
+hermes_default_model: {}
+# Removing a key from hermes_config_extra does not remove it from the host.
+hermes_config_extra: {}
+
 # Docker image pull policy (always, missing, never, build)
 hermes_pull_policy: missing
 

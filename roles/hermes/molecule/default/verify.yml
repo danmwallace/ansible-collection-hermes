@@ -80,3 +80,28 @@
       ansible.builtin.assert:
         that:
           - "'ANTHROPIC_API_KEY=test-anthropic-key' in rendered"  # molecule-test-only: fake value, not a real credential
+
+    # Exact content, in the order ai01's wizard-written file has it, so the
+    # first run against that host leaves the file alone.
+    - name: Assert .env holds the API key and TERMINAL_ENV, nothing else
+      ansible.builtin.assert:
+        that:
+          - (hermes_env_contents.content | b64decode) == expected
+      vars:
+        expected: "ANTHROPIC_API_KEY=test-anthropic-key\nTERMINAL_ENV=local\n"  # molecule-test-only: fake value, not a real credential
+
+    - name: Render env.j2 without hermes_terminal_env
+      ansible.builtin.set_fact:
+        hermes_env_without_terminal: "{{ lookup('ansible.builtin.template', playbook_dir ~ '/../../templates/env.j2') }}"
+      vars:
+        hermes_anthropic_api_key: test-anthropic-key  # molecule-test-only: fake value, not a real credential
+        hermes_openai_api_key: ""
+        hermes_google_client_id: ""
+        hermes_google_client_secret: ""
+        hermes_gmail_refresh_token: ""
+        hermes_gcal_refresh_token: ""
+
+    - name: Assert TERMINAL_ENV is left out when hermes_terminal_env is unset
+      ansible.builtin.assert:
+        that:
+          - "'TERMINAL_ENV' not in hermes_env_without_terminal"

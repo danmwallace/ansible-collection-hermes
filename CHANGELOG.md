@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-11-27
+
 ### Added
 
 - `hermes`: `hermes_terminal_env` writes `TERMINAL_ENV` to `data/.env` (#57). The setup wizard records the terminal backend there, and the role renders the whole file, so on ai01 a real run would have stripped the line and restarted Hermes. Unset, the default, leaves the line out, so the file is unchanged on hosts that don't set it.
